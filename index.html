@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Codicon Letters</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: a VS Code-style workbench. Controls live in the side bar, the lettering sits in the editor area on a light or dark backdrop, and the status bar reports the export. */
+  --bg:#ffffff;
+  --side:#f3f3f3;
+  --line:#e2e2e2;
+  --ink:#3b3b3b;
+  --muted:#6a6a6a;
+  --accent:#007acc;
+  --accent-text:#005fb8;
+  --on-accent:#ffffff;
+  --field:#ffffff;
+  --hover:#e6e7e8;
+  --selected:#d6ebfa;
+  --fg-strong:#000000;
+  --font-display:-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", system-ui, "Segoe UI", sans-serif;
+  --font-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1e1e1e; --side:#252526; --line:#3a3a3a; --ink:#cccccc; --muted:#9a9a9a;
+    --accent:#007acc; --accent-text:#4ea8ff; --on-accent:#ffffff; --field:#313131;
+    --hover:#2c2e30; --selected:#04395e; --fg-strong:#ffffff; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1e1e1e; --side:#252526; --line:#3a3a3a; --ink:#cccccc; --muted:#9a9a9a;
+  --accent:#007acc; --accent-text:#4ea8ff; --on-accent:#ffffff; --field:#313131;
+  --hover:#2c2e30; --selected:#04395e; --fg-strong:#ffffff; color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--font-body)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+.app{height:100%;display:grid;grid-template-rows:auto 1fr auto}
+
+/* Title bar */
+.titlebar{display:flex;align-items:center;gap:6px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--side);position:relative;z-index:5}
+.titlebar h1{margin:0;font:600 16px/1.2 var(--font-display);letter-spacing:-.01em}
+
+/* Workbench */
+.work{display:grid;grid-template-columns:340px 1fr;min-height:0}
+.side{background:var(--side);border-right:1px solid var(--line);overflow:auto;display:flex;flex-direction:column}
+.section{border-bottom:1px solid var(--line);padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.section h2,.section .subhead{margin:0;font:600 11px/1.2 var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hint{margin:0;font-size:12px;color:var(--muted)}
+.hints{display:flex;flex-direction:column;gap:2px;margin-top:-4px}
+.hint.warn{color:#b84a00}
+:root[data-theme="dark"] .hint.warn{color:#f0883e}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .hint.warn{color:#f0883e}}
+
+textarea,input[type="search"],input[type="number"],input[type="text"],select{
+  background:var(--field);border:1px solid var(--line);border-radius:4px;padding:7px 9px;width:100%;
+}
+#text{font:500 15px/1.4 var(--font-mono);text-transform:uppercase;resize:vertical;min-height:64px;letter-spacing:.04em}
+
+/* Icon picker */
+.current{display:flex;align-items:center;gap:10px}
+.current .chip{width:40px;height:40px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg-strong);display:grid;place-items:center}
+.current .chip svg{width:24px;height:24px}
+.current strong{font:500 13px/1.2 var(--font-mono);display:block;word-break:break-all}
+.current span{font-size:12px;color:var(--muted)}
+.icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(36px,1fr));gap:2px;max-height:252px;overflow:auto;
+  border:1px solid var(--line);border-radius:4px;padding:4px;background:var(--field)}
+.icon-btn{aspect-ratio:1;display:grid;place-items:center;border:1px solid transparent;border-radius:4px;background:none;padding:0;cursor:pointer;color:var(--ink)}
+.icon-btn svg{width:18px;height:18px;fill:currentColor}
+.icon-btn:hover{background:var(--hover)}
+.icon-btn[aria-pressed="true"]{background:var(--selected);border-color:var(--accent)}
+.icon-btn[hidden]{display:none}
+.grid-empty{grid-column:1/-1;padding:16px 8px;color:var(--muted);font-size:13px;text-align:center}
+details summary{cursor:pointer;font-size:13px;color:var(--accent-text)}
+details[open] summary{margin-bottom:8px}
+.custom{display:flex;flex-direction:column;gap:8px}
+.custom textarea{font:12px/1.4 var(--font-mono);min-height:70px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Style controls */
+.field{display:grid;grid-template-columns:96px 1fr auto;align-items:center;gap:10px;font-size:13px}
+.field label{color:var(--ink)}
+.field output{font:12px var(--font-mono);color:var(--muted);min-width:40px;text-align:right;font-variant-numeric:tabular-nums}
+input[type="range"]{width:100%;accent-color:var(--accent)}
+.field.stack{grid-template-columns:1fr;gap:8px}
+.field-head{display:flex;justify-content:space-between;align-items:baseline}
+.field-head output{font:12px var(--font-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.swatches{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.swatch{width:28px;height:28px;border-radius:50%;border:1px solid rgba(127,127,127,.6);cursor:pointer;padding:0}
+.swatch[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:2px}
+/* Custom color: a full-saturation RGB hue wheel. Adjacent primaries/secondaries keep every step fully saturated. */
+.swatch-auto{background:linear-gradient(135deg,#000000 50%,#ffffff 50%)}
+.swatch-custom{background:conic-gradient(#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000)}
+.custom-color{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#hex{width:104px;font:13px var(--font-mono);text-transform:uppercase;padding:5px 8px}
+#hex[aria-invalid="true"]{border-color:#f14c4c}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-radius:4px;background:var(--field);padding:2px;cursor:pointer}
+.align-block{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.seg-full{display:flex;width:100%}
+.seg-full label{flex:1}
+.seg-full label span{text-align:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg label{position:relative;display:block;cursor:pointer}
+.seg input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.seg label span{display:block;padding:5px 12px;font-size:13px;background:var(--field)}
+.seg label+label span{border-left:1px solid var(--line)}
+.seg label:hover span{background:var(--hover)}
+.seg input:checked+span{background:var(--accent);color:var(--on-accent)}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:-2px}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--field)}
+.stepper button{border:0;background:none;width:28px;height:28px;cursor:pointer;font:500 15px var(--font-mono)}
+.stepper button:hover{background:var(--hover)}
+.stepper span{min-width:28px;text-align:center;font:13px var(--font-mono);font-variant-numeric:tabular-nums}
+
+
+/* Editor area */
+.editor{display:grid;grid-template-rows:1fr auto;min-height:0;min-width:0}
+.stage{position:relative;display:grid;place-items:center;overflow:hidden;padding:32px;min-height:220px;
+  background:var(--side)}
+#preview{display:block}
+.placeholder{position:absolute;inset:0;display:grid;place-items:center;font:13px var(--font-mono);color:#8a8a8a;pointer-events:none}
+.theme-toggle{margin-left:auto;display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--field)}
+.theme-toggle label{position:relative;display:block;cursor:pointer}
+.theme-toggle input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.theme-toggle span{display:block;padding:3px 12px;font:500 12px/1.4 var(--font-body);color:var(--muted)}
+.theme-toggle label:hover span{color:var(--ink)}
+.theme-toggle input:checked+span{background:var(--accent);color:var(--on-accent)}
+.theme-toggle input:focus-visible+span{outline:2px solid var(--accent);outline-offset:-2px}
+
+.exportbar{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;padding:12px 16px;border-top:1px solid var(--line);background:var(--side)}
+.exportbar .group{display:flex;align-items:center;gap:8px;font-size:13px}
+.exportbar select{width:auto;padding:5px 8px}
+.exportbar .spacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--field);border-radius:4px;padding:7px 14px;cursor:pointer;font-weight:500}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{background:#0069b0}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Status bar */
+.statusbar{display:flex;gap:16px;align-items:center;background:var(--accent);color:var(--on-accent);font:12px/1 var(--font-mono);padding:5px 12px;min-height:24px;overflow:hidden;white-space:nowrap}
+.statusbar .item{display:inline-flex;align-items:center;gap:6px}
+.statusbar svg{width:14px;height:14px;fill:currentColor}
+.statusbar .right{margin-left:auto;display:flex;gap:16px}
+
+/* Toast + save sheet */
+.toast{position:fixed;right:16px;bottom:40px;background:var(--side);border:1px solid var(--line);border-left:3px solid var(--accent);padding:8px 12px;border-radius:4px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.18);opacity:0;transform:translateY(6px);transition:opacity .15s,transform .15s;pointer-events:none}
+.toast.show{opacity:1;transform:none}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);display:grid;place-items:center;padding:16px;z-index:10}
+.sheet[hidden]{display:none}
+.sheet .panel{background:var(--bg);border:1px solid var(--line);border-radius:8px;max-width:min(720px,100%);max-height:100%;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.sheet h3{margin:0;font-size:15px}
+.sheet .shot{background-color:#ffffff;background-image:conic-gradient(#e9e9e9 25%,transparent 0 50%,#e9e9e9 0 75%,transparent 0);background-size:16px 16px;padding:12px;border-radius:4px;overflow:auto}
+.sheet .shot img{max-width:100%;display:block;margin:auto}
+.sheet textarea{font:12px/1.4 var(--font-mono);min-height:160px}
+
+@media (prefers-reduced-motion: reduce){.toast{transition:none}}
+
+@media (max-width:760px){
+  html,body{height:auto}
+  .app{min-height:100%}
+  .work{grid-template-columns:1fr}
+  .editor{order:-1}
+  .side{border-right:0;overflow:visible}
+  .stage{min-height:200px;padding:20px}
+  .statusbar .hide-sm{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="titlebar">
+    <h1>Codicon Letters</h1>
+    <div class="theme-toggle" role="radiogroup" aria-label="Appearance">
+      <label><input type="radio" name="theme" value="light" id="theme-light"><span>Light</span></label>
+      <label><input type="radio" name="theme" value="dark" id="theme-dark"><span>Dark</span></label>
+    </div>
+  </header>
+
+  <div class="work">
+    <aside class="side" aria-label="Settings">
+      <section class="section" aria-labelledby="h-text">
+        <h2 id="h-text">Text</h2>
+        <textarea id="text" rows="2" spellcheck="false" autocapitalize="characters" autocomplete="off" aria-describedby="text-hint text-skip" aria-labelledby="h-text"></textarea>
+        <div class="hints">
+          <p class="hint" id="text-hint">Enter for a new line.</p>
+          <p class="hint warn" id="text-skip" hidden></p>
+        </div>
+        <div class="align-block">
+          <h3 class="subhead" id="lbl-align">Alignment</h3>
+          <div class="seg seg-full" role="radiogroup" aria-labelledby="lbl-align" id="align">
+            <label><input type="radio" name="align" value="left" id="align-left"><span>Left</span></label>
+            <label><input type="radio" name="align" value="center" id="align-center"><span>Center</span></label>
+            <label><input type="radio" name="align" value="right" id="align-right"><span>Right</span></label>
+          </div>
+          <p class="hint" id="align-hint">Alignment lines up lines of different lengths inside the text box, so it shows once you add a second line.</p>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="h-icon">
+        <h2 id="h-icon">Icon</h2>
+        <div class="current">
+          <div class="chip" id="current-chip" aria-hidden="true"></div>
+          <div><strong id="current-name">star-full</strong><span id="icon-count">Loading codicons…</span></div>
+        </div>
+        <div class="field">
+          <label for="scale">Icon size</label>
+          <input type="range" id="scale" min="50" max="130" step="5" value="100">
+          <output id="scale-out" for="scale">100%</output>
+        </div>
+        <input type="search" id="icon-search" placeholder="Search codicons, e.g. heart, bug, git" autocomplete="off" aria-label="Search codicons">
+        <div class="icon-grid" id="icon-grid" role="group" aria-label="Codicons"></div>
+        <details id="custom-details">
+          <summary>Icon not listed? Use an SVG file</summary>
+          <div class="custom">
+            <p class="hint">Upload or paste a single-color SVG, such as one from the codicons repo. Every square gets this shape, tinted with your color.</p>
+            <input type="file" id="svg-file" accept=".svg,image/svg+xml" aria-label="Upload an SVG file">
+            <textarea id="svg-paste" placeholder="&lt;svg viewBox=&quot;0 0 16 16&quot;&gt;…&lt;/svg&gt;" aria-label="Paste SVG markup"></textarea>
+            <div class="row"><button class="btn" id="svg-use" type="button">Use pasted SVG</button></div>
+            <p class="hint warn" id="svg-error" hidden></p>
+          </div>
+        </details>
+      </section>
+
+      <section class="section" aria-labelledby="h-style">
+        <h2 id="h-style">Style</h2>
+        <div class="field stack">
+          <div class="field-head"><span id="lbl-color">Color</span><output id="color-out">#3794FF</output></div>
+          <div class="swatches" id="swatches" role="group" aria-labelledby="lbl-color">
+            <button type="button" class="swatch swatch-auto" data-mode="auto" aria-label="Auto: black in Light mode, white in Dark mode" title="Auto: black in Light mode, white in Dark mode" aria-pressed="false"></button>
+            <button type="button" class="swatch" data-mode="blue" style="background:#3794ff" aria-label="Blue" title="Blue" aria-pressed="false"></button>
+            <button type="button" class="swatch swatch-custom" data-mode="custom" id="swatch-custom" aria-label="Custom color" title="Custom color" aria-pressed="false" aria-expanded="false" aria-controls="custom-color"></button>
+          </div>
+          <div class="custom-color" id="custom-color" hidden>
+            <input type="color" id="color" value="#ff8800" aria-label="Pick a color">
+            <label class="sr-only" for="hex">Hex code</label>
+            <input type="text" id="hex" maxlength="7" spellcheck="false" autocomplete="off" autocapitalize="characters" placeholder="#FF8800" aria-describedby="hex-hint">
+            <span class="hint" id="hex-hint">Pick a color or type a hex code.</span>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+
+    <main class="editor">
+      <div class="stage" id="stage">
+        <canvas id="preview" aria-label="Preview of your lettering" role="img"></canvas>
+        <div class="placeholder" id="placeholder" hidden>Type some letters to see them here</div>
+      </div>
+      <div class="exportbar">
+        <div class="group">
+          <label for="size">Image size</label>
+          <select id="size"></select>
+        </div>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="save-svg">Save SVG</button>
+        <button type="button" class="btn primary" id="save-png">Save PNG</button>
+      </div>
+    </main>
+  </div>
+
+  <footer class="statusbar" aria-live="polite">
+    <span class="item" id="st-icon"></span>
+    <span class="item" id="st-letters"></span>
+    <span class="right">
+      <span class="item hide-sm">PNG · transparent</span>
+    </span>
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <h3 id="sheet-title">Save your image</h3>
+    <p class="hint" id="sheet-hint"></p>
+    <div class="shot" id="sheet-shot"></div>
+    <textarea id="sheet-code" readonly hidden aria-label="SVG code"></textarea>
+    <div class="row">
+      <button type="button" class="btn" id="sheet-copy" hidden>Copy SVG code</button>
+      <span class="spacer" style="flex:1"></span>
+      <button type="button" class="btn primary" id="sheet-close">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // The font lives in font/letters.json: each character is a list of rows, "#" = square, "." = empty.
+  let COLS = 8, ROWS = 7, fontReady = false;
+  const GLYPHS = {};
+  // Optical spacing. Each character is trimmed to its squares; the gap between two characters
+  // comes from the shapes of the sides that face each other, row by row:
+  //   two flat sides facing each other get the base gap; when the closest squares are already set back
+  //   (a notch or an open side) the pair tightens; openings deeper than 2 squares (E's arms,
+  //   C's mouth, T's sides) tighten it a little more; facing squares never get closer than one square.
+  const SPACING = { base: 1.460, notch: 0.287, deep: 0.147, deepFrom: 2, deepUpTo: 3, minApart: 1.0, wordSpace: 4 };
+  const OPEN_ROW = 8; // a row with no squares on that side counts as fully open
+  const SHAPE = {};
+  function setFont(font) {
+    COLS = font.grid.columns; ROWS = font.grid.rows;
+    for (const [ch, rows] of Object.entries(font.glyphs)) {
+      const g = rows.map(r => r.replace(/#/g, "1").replace(/[^1]/g, "0"));
+      GLYPHS[ch] = g;
+      const used = [...g[0]].map((_, c) => g.some(row => row[c] === "1"));
+      const min = used.indexOf(true), max = used.lastIndexOf(true);
+      const left = [], right = [];
+      for (const row of g) {
+        const first = row.indexOf("1"), last = row.lastIndexOf("1");
+        left.push(first < 0 ? OPEN_ROW : first - min);
+        right.push(last < 0 ? OPEN_ROW : max - last);
+      }
+      SHAPE[ch] = { min, w: max - min + 1, left, right };
+    }
+    fontReady = true;
+  }
+  const pairGap = (a, b) => {
+    const d = SHAPE[a].right.map((x, r) => x + SHAPE[b].left[r]);
+    const closest = Math.min(...d);
+    const deep = d.reduce((sum, x) => sum + Math.min(Math.max(x - SPACING.deepFrom, 0), SPACING.deepUpTo), 0) / d.length;
+    const g = SPACING.base - SPACING.deep * deep - SPACING.notch * Math.min(closest, 1);
+    return Math.max(g, SPACING.minApart - closest);
+  };
+
+  // A plain square with softened corners, slightly inset in its cell. Codicons are drawn as-is.
+  const SQUARE = { name: "pixel-square", label: "Square", vb: [0, 0, 300, 300], paths: [{ d: "M50 20H250A30 30 0 0 1 280 50V250A30 30 0 0 1 250 280H50A30 30 0 0 1 20 250V50A30 30 0 0 1 50 20Z", rule: "nonzero" }] };
+  const icons = [SQUARE];
+  const byName = new Map([[SQUARE.name, SQUARE]]);
+  let custom = null;
+
+  const BLUE = "#3794ff";
+
+  const DEFAULTS = { text: "PRESS\nSTART", icon: "star-full", color: "#000000", colorMode: "auto", customColor: "#ff8800", scale: 100, align: "center", size: 32, theme: "", customSvg: "" };
+  // Spacing follows the font: one empty column between letters, two empty rows between lines, no padding.
+  const LINE_GAP = 2;
+  const ALIGNS = ["left", "center", "right"];
+  const STORE = "codicon-letters-v1";
+  const state = { ...DEFAULTS };
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE) || "null");
+    if (saved && typeof saved === "object") {
+      for (const k of Object.keys(DEFAULTS)) if (k in saved) state[k] = saved[k];
+    }
+  } catch (e) { /* storage unavailable */ }
+  const normHex = (v) => {
+    let s = String(v || "").trim().replace(/^#/, "");
+    if (/^[0-9a-f]{3}$/i.test(s)) s = s.split("").map(c => c + c).join("");
+    return /^[0-9a-f]{6}$/i.test(s) ? "#" + s.toLowerCase() : null;
+  };
+  state.customColor = normHex(state.customColor) || DEFAULTS.customColor;
+  if (!["auto", "blue", "custom"].includes(state.colorMode)) {
+    // Older saves: Black or White becomes Auto, Blue stays Blue, anything else stays custom.
+    const c = normHex(state.color);
+    state.colorMode = c === BLUE ? "blue" : (!c || c === "#000000" || c === "#ffffff") ? "auto" : "custom";
+    if (state.colorMode === "custom") state.customColor = c;
+  }
+  if (!ALIGNS.includes(state.align)) state.align = DEFAULTS.align;
+  {
+    const sizes = [8, 16, 32, 64, 128];
+    const want = +state.size || DEFAULTS.size;
+    state.size = sizes.reduce((a, b) => Math.abs(Math.log(b / want)) < Math.abs(Math.log(a / want)) ? b : a);
+  }
+  if (state.theme !== "light" && state.theme !== "dark") state.theme = "";
+  let persistTimer = 0;
+  function persist() {
+    clearTimeout(persistTimer);
+    persistTimer = setTimeout(() => { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }, 250);
+  }
+  window.addEventListener("pagehide", () => { clearTimeout(persistTimer); try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} });
+
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    text: $("text"), skip: $("text-skip"), grid: $("icon-grid"), search: $("icon-search"), count: $("icon-count"),
+    chip: $("current-chip"), name: $("current-name"), color: $("color"), swatches: $("swatches"),
+    alignHint: $("align-hint"), swatchCustom: $("swatch-custom"), customColor: $("custom-color"), hex: $("hex"), colorOut: $("color-out"),
+    scale: $("scale"), scaleOut: $("scale-out"), align: $("align"), stage: $("stage"), preview: $("preview"),
+    placeholder: $("placeholder"), size: $("size"), savePng: $("save-png"), saveSvg: $("save-svg"),
+    stIcon: $("st-icon"), stLetters: $("st-letters"), toast: $("toast"),
+    svgFile: $("svg-file"), svgPaste: $("svg-paste"), svgUse: $("svg-use"), svgError: $("svg-error"), customDetails: $("custom-details"),
+    sheet: $("sheet"), sheetTitle: $("sheet-title"), sheetHint: $("sheet-hint"), sheetShot: $("sheet-shot"), sheetCode: $("sheet-code"), sheetCopy: $("sheet-copy"), sheetClose: $("sheet-close")
+  };
+
+  // ---------- Icons ----------
+  const escAttr = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  function iconSvg(icon) {
+    const [x, y, w, h] = icon.vb;
+    return `<svg viewBox="${x} ${y} ${w} ${h}" aria-hidden="true" fill="currentColor">${icon.paths.map(p => `<path d="${escAttr(p.d)}"${p.rule === "evenodd" ? ' fill-rule="evenodd"' : ""}/>`).join("")}</svg>`;
+  }
+  function currentIcon() {
+    if (state.icon === "custom" && custom) return custom;
+    return byName.get(state.icon) || byName.get(DEFAULTS.icon) || SQUARE;
+  }
+  const pathCache = new WeakMap();
+  function path2d(icon) {
+    let p = pathCache.get(icon);
+    if (!p) { p = icon.paths.map(x => ({ p: new Path2D(x.d), rule: x.rule === "evenodd" ? "evenodd" : "nonzero" })); pathCache.set(icon, p); }
+    return p;
+  }
+
+  function buildGrid() {
+    const all = custom ? [custom, ...icons] : icons;
+    el.grid.innerHTML = all.map(ic =>
+      `<button type="button" class="icon-btn" data-name="${escAttr(ic.name)}" title="${escAttr(ic.label || ic.name)}" aria-label="${escAttr(ic.label || ic.name)}" aria-pressed="false" tabindex="-1">${iconSvg(ic)}</button>`
+    ).join("") + `<div class="grid-empty" id="grid-empty" hidden>No codicons match. Try another word, or use an SVG file below.</div>`;
+    filterGrid();
+    markSelected();
+  }
+  function filterGrid() {
+    const q = el.search.value.trim().toLowerCase().replace(/\s+/g, "-");
+    let shown = 0;
+    for (const b of el.grid.querySelectorAll(".icon-btn")) {
+      const match = !q || b.dataset.name.includes(q) || (b.title || "").toLowerCase().includes(q);
+      b.hidden = !match;
+      if (match) shown++;
+    }
+    const empty = $("grid-empty");
+    if (empty) empty.hidden = shown > 0;
+    const total = el.grid.querySelectorAll(".icon-btn").length;
+    el.count.textContent = q ? `${shown} of ${total} match` : `${total} icons`;
+  }
+  function markSelected() {
+    const ic = currentIcon();
+    let first = null, focusable = null;
+    for (const b of el.grid.querySelectorAll(".icon-btn")) {
+      const on = b.dataset.name === ic.name;
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.tabIndex = -1;
+      if (on) focusable = b;
+      if (!first && !b.hidden) first = b;
+    }
+    (focusable && !focusable.hidden ? focusable : first || focusable)?.setAttribute("tabindex", "0");
+    el.chip.innerHTML = iconSvg(ic);
+    el.name.textContent = ic.label || ic.name;
+  }
+  function selectIcon(name) {
+    state.icon = name;
+    markSelected();
+    persist();
+    render();
+  }
+  el.grid.addEventListener("click", (e) => {
+    const b = e.target.closest(".icon-btn");
+    if (!b) return;
+    selectIcon(b.dataset.name === custom?.name ? "custom" : b.dataset.name);
+  });
+  el.grid.addEventListener("keydown", (e) => {
+    const keys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"];
+    if (!keys.includes(e.key) && e.key !== "Enter" && e.key !== " ") return;
+    const btns = [...el.grid.querySelectorAll(".icon-btn:not([hidden])")];
+    const i = btns.indexOf(document.activeElement);
+    if (i < 0) return;
+    if (e.key === "Enter" || e.key === " ") return; // native click
+    e.preventDefault();
+    const top0 = btns[0].offsetTop;
+    let cols = btns.findIndex(b => b.offsetTop !== top0);
+    if (cols < 1) cols = btns.length;
+    let j = i;
+    if (e.key === "ArrowLeft") j = i - 1;
+    if (e.key === "ArrowRight") j = i + 1;
+    if (e.key === "ArrowUp") j = i - cols;
+    if (e.key === "ArrowDown") j = i + cols;
+    if (e.key === "Home") j = 0;
+    if (e.key === "End") j = btns.length - 1;
+    j = Math.max(0, Math.min(btns.length - 1, j));
+    btns[i].tabIndex = -1;
+    btns[j].tabIndex = 0;
+    btns[j].focus();
+    btns[j].scrollIntoView({ block: "nearest" });
+  });
+  el.search.addEventListener("input", () => { filterGrid(); markSelected(); });
+  el.search.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === "ArrowDown") {
+      const first = el.grid.querySelector(".icon-btn:not([hidden])");
+      if (!first) return;
+      e.preventDefault();
+      if (e.key === "Enter") first.click(); else first.focus();
+    }
+  });
+
+  // ---------- Custom SVG ----------
+  function shapeToPath(node) {
+    const n = (a) => parseFloat(node.getAttribute(a) || "0");
+    switch (node.localName) {
+      case "path": return node.getAttribute("d");
+      case "rect": { const x = n("x"), y = n("y"), w = n("width"), h = n("height"); return w && h ? `M${x} ${y}h${w}v${h}h${-w}Z` : null; }
+      case "circle": { const cx = n("cx"), cy = n("cy"), r = n("r"); return r ? `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0Z` : null; }
+      case "ellipse": { const cx = n("cx"), cy = n("cy"), rx = n("rx"), ry = n("ry"); return rx && ry ? `M${cx - rx} ${cy}a${rx} ${ry} 0 1 0 ${2 * rx} 0a${rx} ${ry} 0 1 0 ${-2 * rx} 0Z` : null; }
+      case "polygon": { const pts = (node.getAttribute("points") || "").trim(); return pts ? `M${pts}Z` : null; }
+      default: return null;
+    }
+  }
+  function parseSvg(text, label) {
+    const doc = new DOMParser().parseFromString(text, "image/svg+xml");
+    const svg = doc.documentElement;
+    if (!svg || svg.localName !== "svg" || doc.getElementsByTagName("parsererror").length) throw new Error("That isn’t valid SVG markup.");
+    let vb = (svg.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(Number);
+    if (vb.length !== 4 || vb.some(isNaN) || vb[2] <= 0 || vb[3] <= 0) {
+      const w = parseFloat(svg.getAttribute("width")) || 16, h = parseFloat(svg.getAttribute("height")) || 16;
+      vb = [0, 0, w, h];
+    }
+    const paths = [];
+    let transformed = false;
+    for (const node of svg.querySelectorAll("path,rect,circle,ellipse,polygon")) {
+      if (node.closest("defs,clipPath,mask")) continue;
+      const fill = node.getAttribute("fill");
+      if (fill === "none") continue;
+      if (node.getAttribute("transform") || node.closest("[transform]") !== null && node.closest("[transform]") !== svg) transformed = true;
+      const d = shapeToPath(node);
+      if (!d) continue;
+      const ruleHost = node.closest("[fill-rule]");
+      const rule = (node.getAttribute("fill-rule") || ruleHost?.getAttribute("fill-rule") || "nonzero");
+      paths.push({ d, rule });
+    }
+    if (!paths.length) throw new Error("No filled shapes found in that SVG.");
+    for (const p of paths) new Path2D(p.d); // throws only on hard failure
+    return { icon: { name: "custom-svg", label: label || "Your SVG", vb, paths }, transformed };
+  }
+  function useCustom(text, label, quiet) {
+    try {
+      const { icon, transformed } = parseSvg(text, label);
+      custom = icon;
+      state.customSvg = text.length < 60000 ? text : "";
+      el.svgError.hidden = !transformed;
+      el.svgError.textContent = transformed ? "This SVG uses transforms, which are skipped here. If it looks off, flatten the transforms in your editor first." : "";
+      buildGrid();
+      if (!quiet) selectIcon("custom"); else markSelected();
+    } catch (err) {
+      el.svgError.hidden = false;
+      el.svgError.textContent = err.message;
+    }
+  }
+  el.svgFile.addEventListener("change", async () => {
+    const f = el.svgFile.files[0];
+    if (!f) return;
+    const text = await f.text();
+    el.svgPaste.value = text;
+    useCustom(text, f.name.replace(/\.svg$/i, ""));
+  });
+  el.svgUse.addEventListener("click", () => {
+    if (!el.svgPaste.value.trim()) { el.svgError.hidden = false; el.svgError.textContent = "Paste some SVG markup first."; return; }
+    useCustom(el.svgPaste.value, "Your SVG");
+  });
+
+  // ---------- Layout ----------
+  function layout() {
+    if (!fontReady) return { W: 0, H: 0, cells: [], letters: 0, textLines: 0, skipped: [] };
+    const raw = String(state.text || "").toUpperCase().replace(/\r/g, "");
+    const skipped = new Set();
+    const lines = raw.split("\n").map(line => {
+      let out = "";
+      for (const ch of line) {
+        if (GLYPHS[ch] || ch === " ") out += ch;
+        else if (ch === "\t") out += " ";
+        else skipped.add(ch);
+      }
+      return out.replace(/^ +| +$/g, ""); // edge spaces are invisible, so they never shift alignment
+    });
+    // Drop blank lines at the very end so a trailing Enter doesn't add empty space.
+    while (lines.length > 1 && lines[lines.length - 1].trim() === "") lines.pop();
+    // Place each character: x positions in squares, with optical gaps between neighbours.
+    const place = (line) => {
+      const out = []; let x = 0, prev = null;
+      for (const ch of line) {
+        if (ch === " ") { x += SPACING.wordSpace + SPACING.base; prev = null; continue; }
+        if (prev) x += pairGap(prev, ch);
+        out.push([ch, x - SHAPE[ch].min]);
+        x += SHAPE[ch].w; prev = ch;
+      }
+      return { out, w: x };
+    };
+    const placed = lines.map(place);
+    const widths = placed.map(p => p.w);
+    const W = Math.max(0, ...widths);
+    const n = lines.length;
+    const H = n * ROWS + (n - 1) * LINE_GAP;
+    const cells = [];
+    let letters = 0;
+    lines.forEach((line, i) => {
+      const off = state.align === "center" ? (W - widths[i]) / 2 : state.align === "right" ? W - widths[i] : 0;
+      const y0 = i * (ROWS + LINE_GAP);
+      for (const [ch, x] of placed[i].out) {
+        const g = GLYPHS[ch];
+        letters++;
+        for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (g[r][c] === "1") cells.push([off + x + c, y0 + r]);
+      }
+    });
+    const textLines = lines.filter(l => l.trim()).length;
+    return { W: letters ? W : 0, H: letters ? H : 0, cells, letters, textLines, skipped: [...skipped] };
+  }
+  // Each name sets how many pixels one square of the letter grid gets in the saved image.
+  const SIZES = [[8, "Extra small"], [16, "Small"], [32, "Medium"], [64, "Large"], [128, "Extra large"]];
+  function updateSizeLabels(L) {
+    for (const opt of el.size.options) {
+      const name = SIZES.find(([px]) => px === +opt.value)[1];
+      const f = frame(L, +opt.value);
+      opt.textContent = L.letters ? `${name} · ${f.w} × ${f.h} px` : name;
+    }
+  }
+  const bleed = () => Math.max(0, (state.scale / 100 - 1) / 2);
+  function frame(L, P) {
+    const m = bleed();
+    return { m, w: Math.round((L.W + 2 * m) * P), h: Math.round((L.H + 2 * m) * P) };
+  }
+  function drawCells(ctx, L, P, m) {
+    const icon = currentIcon();
+    const ps = path2d(icon);
+    const [vx, vy, vw, vh] = icon.vb;
+    const k = (P * state.scale / 100) / Math.max(vw, vh);
+    const iw = vw * k, ih = vh * k;
+    ctx.fillStyle = state.color;
+    for (const [cx, cy] of L.cells) {
+      ctx.save();
+      ctx.translate(Math.round((cx + m) * P + (P - iw) / 2), Math.round((cy + m) * P + (P - ih) / 2));
+      ctx.scale(k, k);
+      ctx.translate(-vx, -vy);
+      for (const q of ps) ctx.fill(q.p, q.rule);
+      ctx.restore();
+    }
+  }
+
+  // ---------- Preview ----------
+  function render() {
+    const L = layout();
+    const empty = !L.letters;
+    el.placeholder.hidden = !empty;
+    el.placeholder.textContent = fontReady ? "Type some letters to see them here" : "Loading font…";
+    el.preview.hidden = empty;
+    el.savePng.disabled = empty;
+    el.saveSvg.disabled = empty;
+
+    el.alignHint.hidden = L.textLines > 1;
+    el.skip.hidden = !L.skipped.length;
+    if (L.skipped.length) {
+      const list = L.skipped.slice(0, 12).map(c => c === " " ? "space" : c).join(" ");
+      el.skip.textContent = `Not in this font: ${list}${L.skipped.length > 12 ? " …" : ""}. You can use A–Z, ! and -.`;
+    }
+
+    const ic = currentIcon();
+    el.stIcon.innerHTML = `${iconSvg(ic)}<span>${escAttr(ic.label || ic.name)}</span>`;
+    el.stLetters.textContent = `${L.letters} letter${L.letters === 1 ? "" : "s"} · ${L.cells.length} icons`;
+    const out = frame(L, state.size);
+    updateSizeLabels(L);
+
+    if (empty) return;
+    const box = el.stage.getBoundingClientRect();
+    const padX = Math.min(64, box.width * 0.08), padY = Math.min(64, box.height * 0.1);
+    const totalW = L.W + 2 * out.m, totalH = L.H + 2 * out.m;
+    const availW = Math.max(60, box.width - 2 * padX), availH = Math.max(60, box.height - 2 * padY);
+    const P = Math.max(1, Math.min(availW / totalW, availH / totalH, 56));
+    const cssW = totalW * P, cssH = totalH * P;
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    const cv = el.preview;
+    cv.style.width = cssW + "px";
+    cv.style.height = cssH + "px";
+    cv.width = Math.max(1, Math.round(cssW * dpr));
+    cv.height = Math.max(1, Math.round(cssH * dpr));
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawCells(ctx, L, P, out.m);
+    cv.setAttribute("aria-label", `Preview: ${String(state.text).toUpperCase()} drawn with the ${ic.label || ic.name} icon`);
+  }
+  // Redraw right away on every change. Drawing is cheap, and embedded frames can pause animation frames.
+  const schedule = () => { try { render(); } catch (err) { console.error(err); } };
+  if (window.ResizeObserver) new ResizeObserver(schedule).observe(el.stage);
+  window.addEventListener("resize", schedule);
+
+  // ---------- Export ----------
+  function slug() {
+    const t = String(state.text).toLowerCase().replace(/[^a-z]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "text";
+    const i = (currentIcon().name || "icon").replace(/[^a-z0-9-]+/gi, "-").toLowerCase();
+    return `codicon-${t}-${i}`;
+  }
+  function makePng() {
+    const L = layout();
+    const P = state.size;
+    const { w, h, m } = frame(L, P);
+    if (w > 16384 || h > 16384 || w * h > 100e6) throw new Error(`That would be ${w} × ${h} px, too large to save. Pick a smaller square size.`);
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    drawCells(c.getContext("2d"), L, P, m);
+    return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error("The browser couldn’t encode the PNG.")), "image/png"));
+  }
+  function makeSvg() {
+    const L = layout();
+    const P = state.size;
+    const { w, h, m } = frame(L, P);
+    const icon = currentIcon();
+    const [vx, vy, vw, vh] = icon.vb;
+    const k = (P * state.scale / 100) / Math.max(vw, vh);
+    const iw = vw * k, ih = vh * k;
+    const r = (v, d = 3) => +v.toFixed(d);
+    const shapes = icon.paths.map(p => `<path d="${escAttr(p.d)}"${p.rule === "evenodd" ? ' fill-rule="evenodd"' : ""}/>`).join("");
+    const uses = L.cells.map(([cx, cy]) =>
+      `<use href="#sq" xlink:href="#sq" transform="translate(${r((cx + m) * P + (P - iw) / 2)} ${r((cy + m) * P + (P - ih) / 2)}) scale(${r(k, 6)})${vx || vy ? ` translate(${-vx} ${-vy})` : ""}"/>`
+    ).join("\n");
+    return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">\n<defs><g id="sq">${shapes}</g></defs>\n<g fill="${state.color}">\n${uses}\n</g>\n</svg>\n`;
+  }
+
+  let downloads = null;
+  const host = () => !!(window.claude && typeof window.claude.use === "function");
+  if (host()) window.claude.use("downloads").then(ns => { downloads = ns; }).catch(() => {});
+  async function getDownloads() {
+    if (downloads || !host()) return downloads;
+    try { downloads = await Promise.race([window.claude.use("downloads"), new Promise(r => setTimeout(() => r(null), 1500))]); } catch (e) {}
+    return downloads;
+  }
+  async function saveFile(filename, data, kind) {
+    const dl = await getDownloads();
+    if (dl) {
+      try {
+        const res = await dl.save({ filename, data });
+        if (res && res.status === "saved") toast(`Saved ${filename}`);
+      } catch (err) {
+        const code = err && err.code;
+        if (code === "declined") toast("Save cancelled");
+        else if (code === "rate_limited") toast("A save prompt is already open");
+        else showSheet(filename, data, kind);
+      }
+      return;
+    }
+    if (host()) { showSheet(filename, data, kind); return; }
+    const blob = data instanceof Blob ? data : new Blob([data], { type: "image/svg+xml" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast(`Saved ${filename}`);
+  }
+  let sheetUrl = null;
+  function showSheet(filename, data, kind) {
+    if (sheetUrl) URL.revokeObjectURL(sheetUrl);
+    const blob = data instanceof Blob ? data : new Blob([data], { type: "image/svg+xml" });
+    sheetUrl = URL.createObjectURL(blob);
+    el.sheetTitle.textContent = `Save ${filename}`;
+    el.sheetHint.textContent = kind === "svg"
+      ? "This view can’t save files directly. Copy the SVG code below, or right-click the image and choose Save Image As."
+      : "This view can’t save files directly. Right-click the image (or long-press on a phone) and choose Save Image As. The background stays transparent.";
+    el.sheetShot.innerHTML = "";
+    const img = new Image();
+    img.src = sheetUrl;
+    img.alt = filename;
+    el.sheetShot.appendChild(img);
+    el.sheetCode.hidden = el.sheetCopy.hidden = kind !== "svg";
+    if (kind === "svg") el.sheetCode.value = data;
+    el.sheet.hidden = false;
+    el.sheetClose.focus();
+  }
+  el.sheetClose.addEventListener("click", () => { el.sheet.hidden = true; el.savePng.focus(); });
+  el.sheet.addEventListener("keydown", (e) => { if (e.key === "Escape") el.sheetClose.click(); });
+  el.sheetCopy.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(el.sheetCode.value); toast("SVG code copied"); }
+    catch (e) { el.sheetCode.select(); toast("Select the code and press Ctrl+C or ⌘C"); }
+  });
+
+  el.savePng.addEventListener("click", async () => {
+    el.savePng.disabled = true;
+    try { await saveFile(`${slug()}.png`, await makePng(), "png"); }
+    catch (err) { toast(err.message || "Couldn’t make the PNG"); }
+    finally { el.savePng.disabled = !layout().letters; }
+  });
+  el.saveSvg.addEventListener("click", async () => {
+    try { await saveFile(`${slug()}.svg`, makeSvg(), "svg"); }
+    catch (err) { toast(err.message || "Couldn’t make the SVG"); }
+  });
+
+  let toastTimer = 0;
+  function toast(msg) {
+    el.toast.textContent = msg;
+    el.toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.toast.classList.remove("show"), 2600);
+  }
+
+  // ---------- Controls ----------
+  el.text.value = state.text;
+  // Letters become capitals as you type, so there's no need for Caps Lock.
+  el.text.addEventListener("input", (e) => {
+    if (!e.isComposing) {
+      const v = el.text.value, up = v.toUpperCase();
+      if (up !== v && up.length === v.length) {
+        const a = el.text.selectionStart, b = el.text.selectionEnd;
+        el.text.value = up;
+        el.text.setSelectionRange(a, b);
+      }
+    }
+    state.text = el.text.value; persist(); schedule();
+  });
+  el.text.addEventListener("compositionend", () => el.text.dispatchEvent(new Event("input")));
+
+  // Auto is black in Light mode and white in Dark mode; Blue and custom stay fixed.
+  function applyInk() {
+    state.color = state.colorMode === "auto" ? (effectiveTheme() === "dark" ? "#ffffff" : "#000000")
+      : state.colorMode === "blue" ? BLUE : state.customColor;
+  }
+  function syncColor() {
+    applyInk();
+    const mode = state.colorMode;
+    for (const b of el.swatches.querySelectorAll(".swatch[data-mode]")) b.setAttribute("aria-pressed", b.dataset.mode === mode ? "true" : "false");
+    el.swatchCustom.setAttribute("aria-expanded", mode === "custom" ? "true" : "false");
+    el.customColor.hidden = mode !== "custom";
+    el.color.value = state.customColor;
+    if (document.activeElement !== el.hex) {
+      el.hex.value = state.customColor.toUpperCase();
+      el.hex.removeAttribute("aria-invalid");
+    }
+    el.colorOut.textContent = mode === "auto" ? `Auto · ${state.color.toUpperCase()}` : state.color.toUpperCase();
+  }
+  function setCustom(hex) {
+    state.colorMode = "custom";
+    state.customColor = hex;
+    syncColor(); persist(); schedule();
+  }
+  el.swatches.addEventListener("click", (e) => {
+    const b = e.target.closest(".swatch[data-mode]");
+    if (!b) return;
+    if (b.dataset.mode === "custom") { setCustom(state.customColor); return; }
+    state.colorMode = b.dataset.mode;
+    syncColor(); persist(); schedule();
+  });
+  el.color.addEventListener("input", () => {
+    const v = normHex(el.color.value);
+    if (v) { el.hex.value = v.toUpperCase(); el.hex.removeAttribute("aria-invalid"); setCustom(v); }
+  });
+  el.hex.addEventListener("input", () => {
+    const v = normHex(el.hex.value);
+    if (v) { el.hex.removeAttribute("aria-invalid"); setCustom(v); }
+    else el.hex.setAttribute("aria-invalid", "true");
+  });
+  el.hex.addEventListener("change", () => { el.hex.value = state.customColor.toUpperCase(); el.hex.removeAttribute("aria-invalid"); });
+  el.hex.addEventListener("keydown", (e) => { if (e.key === "Enter") el.hex.blur(); });
+
+
+  el.scale.value = state.scale;
+  el.scaleOut.textContent = state.scale + "%";
+  el.scale.addEventListener("input", () => { state.scale = +el.scale.value; el.scaleOut.textContent = state.scale + "%"; persist(); schedule(); });
+
+  const alignInputs = [...document.querySelectorAll('input[name="align"]')];
+  function syncAlign() { for (const r of alignInputs) r.checked = r.value === state.align; }
+  for (const r of alignInputs) {
+    r.addEventListener("change", () => {
+      if (!r.checked) return;
+      state.align = r.value;
+      persist();
+      schedule();
+    });
+  }
+
+  el.size.innerHTML = SIZES.map(([px, name]) => `<option value="${px}">${name}</option>`).join("");
+  el.size.value = String(state.size);
+  el.size.addEventListener("change", () => { state.size = +el.size.value; persist(); schedule(); });
+
+  // Appearance: follows the system (or the host app) until you pick Light or Dark.
+  const root = document.documentElement;
+  const themeInputs = [...document.querySelectorAll('input[name="theme"]')];
+  const darkQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+  function effectiveTheme() {
+    if (state.theme) return state.theme;
+    const t = root.getAttribute("data-theme");
+    if (t === "light" || t === "dark") return t;
+    return darkQuery && darkQuery.matches ? "dark" : "light";
+  }
+  function syncTheme() {
+    if (state.theme) root.setAttribute("data-theme", state.theme);
+    const eff = effectiveTheme();
+    for (const r of themeInputs) r.checked = r.value === eff;
+  }
+  for (const r of themeInputs) {
+    r.addEventListener("change", () => { if (r.checked) { state.theme = r.value; syncTheme(); syncColor(); persist(); schedule(); } });
+  }
+  const followSystem = () => { if (!state.theme) { syncTheme(); syncColor(); schedule(); } };
+  if (darkQuery && darkQuery.addEventListener) darkQuery.addEventListener("change", followSystem);
+  new MutationObserver(followSystem).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+
+  syncTheme(); syncColor(); syncAlign();
+  if (state.customSvg) useCustom(state.customSvg, "Your SVG", true);
+  buildGrid();
+  render();
+
+  // ---------- Load the font ----------
+  fetch("font/letters.json")
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(font => { setFont(font); render(); })
+    .catch(() => { el.placeholder.hidden = false; el.placeholder.textContent = "Couldn’t load the font. Reload the page to try again."; });
+
+  // ---------- Load the codicon set ----------
+  fetch("codicons.json")
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(list => {
+      for (const { n, d } of list) {
+        const ic = { name: n, vb: [0, 0, 300, 300], paths: [{ d, rule: "nonzero" }] };
+        icons.push(ic);
+        byName.set(n, ic);
+      }
+      buildGrid();
+      render();
+    })
+    .catch(() => {
+      el.count.textContent = "Couldn’t load the codicon set. Reload the page to try again.";
+    });
+})();
+</script>
+</body>
+</html>
