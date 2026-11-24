@@ -1,3 +1,5 @@
+<img width="1449" height="522" alt="codicon-press-start-attach" src="https://github.com/user-attachments/assets/f334e766-0d4e-43c4-980a-c3d39bd4d426" />
+
 # Codicon Letters
 
 Type a word and it's drawn in a pixel font where every square is a VS Code codicon. Save the result as a PNG with a transparent background, or as an SVG.
