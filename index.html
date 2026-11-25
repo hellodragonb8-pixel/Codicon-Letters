@@ -120,6 +120,18 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
 .seg label:hover span{background:var(--hover)}
 .seg input:checked+span{background:var(--accent);color:var(--on-accent)}
 .seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:-2px}
+.loop-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.loop-list:empty{display:none}
+.loop-item{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:4px;background:var(--field);padding:2px 2px 2px 6px;font:12px var(--font-mono);max-width:100%}
+.loop-item .num{color:var(--muted);font-variant-numeric:tabular-nums}
+.loop-item svg{width:16px;height:16px;flex:none}
+.loop-item .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px}
+.loop-item button{border:0;background:none;border-radius:3px;cursor:pointer;color:var(--muted)}
+.loop-item .loop-edit{display:inline-flex;align-items:center;gap:6px;padding:4px;font:inherit;color:var(--ink);min-width:0}
+.loop-item .loop-edit[aria-pressed="true"]{outline:2px solid var(--accent)}
+.loop-item .loop-remove{width:22px;height:22px;font:15px/1 var(--font-body)}
+.loop-item button:disabled{opacity:.5;cursor:not-allowed}
+.loop-item button:hover{background:var(--hover);color:var(--ink)}
 .stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--field)}
 .stepper button{border:0;background:none;width:28px;height:28px;cursor:pointer;font:500 15px var(--font-mono)}
 .stepper button:hover{background:var(--hover)}
@@ -235,6 +247,16 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
         </details>
       </section>
 
+      <section class="section" aria-labelledby="h-animation">
+        <h2 id="h-animation">Animation</h2>
+        <label class="row"><input type="checkbox" id="animate" aria-describedby="animation-hint"> Codicon wipe loop</label>
+        <p class="hint" id="animation-hint">Wipes cycle left to right, bottom to top, right to left, then top to bottom. PNG and SVG exports keep your selected icon.</p>
+        <div class="field-head"><h3 class="subhead" id="lbl-loop">Loop icons</h3><output id="loop-count" for="loop-add">5 of 5</output></div>
+        <ol class="loop-list" id="loop-list" aria-labelledby="lbl-loop"></ol>
+        <div class="row"><button type="button" class="btn" id="loop-add" aria-describedby="loop-hint">Add selected icon</button></div>
+        <p class="hint" id="loop-hint">Click a loop icon, then choose its replacement in the icon grid above. Check Codicon wipe loop to enable GIF and MP4 export.</p>
+      </section>
+
       <section class="section" aria-labelledby="h-style">
         <h2 id="h-style">Style</h2>
         <div class="field stack">
@@ -266,6 +288,8 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
           <select id="size"></select>
         </div>
         <span class="spacer"></span>
+        <button type="button" class="btn" id="save-gif" aria-describedby="loop-hint">Save GIF</button>
+        <button type="button" class="btn" id="save-video" aria-describedby="loop-hint" hidden>Save MP4</button>
         <button type="button" class="btn" id="save-svg">Save SVG</button>
         <button type="button" class="btn primary" id="save-png">Save PNG</button>
       </div>
@@ -345,7 +369,8 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
 
   const BLUE = "#3794ff";
 
-  const DEFAULTS = { text: "PRESS\nSTART", icon: "star-full", color: "#000000", colorMode: "auto", customColor: "#ff8800", scale: 100, align: "center", size: 32, theme: "", customSvg: "" };
+  const DEFAULT_LOOP = ["star-full", "heart", "flame", "gear", "rocket"];
+  const DEFAULTS = { text: "PRESS\nSTART", icon: "star-full", color: "#000000", colorMode: "auto", customColor: "#ff8800", scale: 100, align: "center", size: 32, theme: "", customSvg: "", animate: false, loopIcons: DEFAULT_LOOP };
   // Spacing follows the font: one empty column between letters, two empty rows between lines, no padding.
   const LINE_GAP = 2;
   const ALIGNS = ["left", "center", "right"];
@@ -376,6 +401,13 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     state.size = sizes.reduce((a, b) => Math.abs(Math.log(b / want)) < Math.abs(Math.log(a / want)) ? b : a);
   }
   if (state.theme !== "light" && state.theme !== "dark") state.theme = "";
+  state.animate = state.animate === true;
+  const MAX_LOOP = 5;
+  state.loopIcons = Array.isArray(state.loopIcons)
+    ? [...new Set(state.loopIcons.filter(n => typeof n === "string" && n))].slice(0, MAX_LOOP)
+    : [];
+  if (state.loopIcons.length < 2) state.loopIcons = [...new Set([...state.loopIcons, ...DEFAULT_LOOP])].slice(0, MAX_LOOP);
+  let editingLoop = null;
   let persistTimer = 0;
   function persist() {
     clearTimeout(persistTimer);
@@ -390,6 +422,9 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     alignHint: $("align-hint"), swatchCustom: $("swatch-custom"), customColor: $("custom-color"), hex: $("hex"), colorOut: $("color-out"),
     scale: $("scale"), scaleOut: $("scale-out"), align: $("align"), stage: $("stage"), preview: $("preview"),
     placeholder: $("placeholder"), size: $("size"), savePng: $("save-png"), saveSvg: $("save-svg"),
+    animate: $("animate"), animationHint: $("animation-hint"),
+    loopList: $("loop-list"), loopAdd: $("loop-add"), loopCount: $("loop-count"), loopHint: $("loop-hint"),
+    saveGif: $("save-gif"), saveVideo: $("save-video"),
     stIcon: $("st-icon"), stLetters: $("st-letters"), toast: $("toast"),
     svgFile: $("svg-file"), svgPaste: $("svg-paste"), svgUse: $("svg-use"), svgError: $("svg-error"), customDetails: $("custom-details"),
     sheet: $("sheet"), sheetTitle: $("sheet-title"), sheetHint: $("sheet-hint"), sheetShot: $("sheet-shot"), sheetCode: $("sheet-code"), sheetCopy: $("sheet-copy"), sheetClose: $("sheet-close")
@@ -434,7 +469,7 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     el.count.textContent = q ? `${shown} of ${total} match` : `${total} icons`;
   }
   function markSelected() {
-    const ic = currentIcon();
+    const ic = editingLoop === null ? currentIcon() : resolveIcon(state.loopIcons[editingLoop]) || currentIcon();
     let first = null, focusable = null;
     for (const b of el.grid.querySelectorAll(".icon-btn")) {
       const on = b.dataset.name === ic.name;
@@ -446,8 +481,21 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     (focusable && !focusable.hidden ? focusable : first || focusable)?.setAttribute("tabindex", "0");
     el.chip.innerHTML = iconSvg(ic);
     el.name.textContent = ic.label || ic.name;
+    syncLoop();
   }
   function selectIcon(name) {
+    if (editingLoop !== null) {
+      if (state.loopIcons.some((n, i) => n === name && i !== editingLoop)) {
+        toast("That icon is already in the loop. Choose a different icon.");
+        return;
+      }
+      const index = editingLoop;
+      state.loopIcons[index] = name;
+      editingLoop = null;
+      markSelected(); persist(); render();
+      el.loopList.querySelector(`.loop-edit[data-index="${index}"]`)?.focus();
+      return;
+    }
     state.icon = name;
     markSelected();
     persist();
@@ -490,6 +538,65 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
       e.preventDefault();
       if (e.key === "Enter") first.click(); else first.focus();
     }
+  });
+
+  // ---------- Loop icons ----------
+  // Saved by name; "custom" means the uploaded SVG. Names that aren't loaded yet are kept until they resolve.
+  const iconKey = (ic) => ic === custom ? "custom" : ic.name;
+  const resolveIcon = (name) => name === "custom" ? custom : byName.get(name) || null;
+  const loopIcons = () => state.loopIcons.map(resolveIcon).filter(Boolean);
+  const loopSequence = () => { const seq = loopIcons(); return seq.length >= 2 ? seq : null; };
+  function syncLoop() {
+    const list = loopIcons();
+    el.loopList.innerHTML = state.loopIcons.map((name, i) => {
+      const ic = resolveIcon(name);
+      if (!ic) return "";
+      const label = escAttr(ic.label || ic.name);
+      return `<li class="loop-item"><button type="button" class="loop-edit" data-index="${i}" aria-label="Change loop icon ${i + 1}: ${label}" aria-pressed="${editingLoop === i}" aria-describedby="loop-hint"><span class="num">${i + 1}</span>${iconSvg(ic)}<span class="nm" title="${label}">${label}</span></button><button type="button" class="loop-remove" data-index="${i}" aria-label="Remove ${label} from the loop" title="${list.length <= 2 ? "Keep at least 2 loop icons" : "Remove"}"${list.length <= 2 ? " disabled" : ""}>×</button></li>`;
+    }).join("");
+    el.loopCount.textContent = `${list.length} of ${MAX_LOOP}`;
+    const ic = currentIcon();
+    const inList = list.includes(ic);
+    const full = list.length >= MAX_LOOP;
+    el.loopAdd.disabled = editingLoop === null && (inList || full);
+    el.loopAdd.textContent = editingLoop !== null ? "Cancel replacement" : full ? "Loop is full" : inList ? `${ic.label || ic.name} is in the loop` : `Add ${ic.label || ic.name}`;
+    el.loopHint.textContent = editingLoop !== null
+      ? `Choose a replacement for loop icon ${editingLoop + 1} in the icon grid above.`
+      : "Click a loop icon, then choose its replacement in the icon grid above. Check Codicon wipe loop to enable GIF and MP4 export.";
+  }
+  el.loopAdd.addEventListener("click", () => {
+    if (editingLoop !== null) {
+      const index = editingLoop;
+      editingLoop = null;
+      markSelected();
+      el.loopList.querySelector(`.loop-edit[data-index="${index}"]`)?.focus();
+      return;
+    }
+    const list = loopIcons();
+    const ic = currentIcon();
+    if (list.includes(ic) || list.length >= MAX_LOOP) return;
+    state.loopIcons = [...list.map(iconKey), iconKey(ic)];
+    syncLoop(); persist(); schedule();
+    toast(`Added ${ic.label || ic.name} to the loop (${state.loopIcons.length} of ${MAX_LOOP})`);
+    if (el.loopAdd.disabled) el.loopList.querySelector("li:last-child button")?.focus();
+  });
+  el.loopList.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-index]");
+    if (!b) return;
+    const i = +b.dataset.index;
+    if (b.classList.contains("loop-edit")) {
+      editingLoop = i;
+      el.search.value = "";
+      filterGrid(); markSelected();
+      el.search.focus();
+      return;
+    }
+    if (loopIcons().length <= 2) return;
+    state.loopIcons.splice(i, 1);
+    editingLoop = null;
+    markSelected(); persist(); schedule();
+    const buttons = el.loopList.querySelectorAll(".loop-edit");
+    (buttons[Math.min(i, buttons.length - 1)] || el.loopAdd).focus();
   });
 
   // ---------- Custom SVG ----------
@@ -616,25 +723,108 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     const m = bleed();
     return { m, w: Math.round((L.W + 2 * m) * P), h: Math.round((L.H + 2 * m) * P) };
   }
-  function drawCells(ctx, L, P, m) {
-    const icon = currentIcon();
+  function drawIcon(ctx, icon, P, x, y) {
     const ps = path2d(icon);
     const [vx, vy, vw, vh] = icon.vb;
     const k = (P * state.scale / 100) / Math.max(vw, vh);
     const iw = vw * k, ih = vh * k;
+    ctx.save();
+    ctx.translate(Math.round(x + (P - iw) / 2), Math.round(y + (P - ih) / 2));
+    ctx.scale(k, k);
+    ctx.translate(-vx, -vy);
+    for (const q of ps) ctx.fill(q.p, q.rule);
+    ctx.restore();
+  }
+  function drawCells(ctx, L, P, m, icon = currentIcon()) {
     ctx.fillStyle = state.color;
     for (const [cx, cy] of L.cells) {
-      ctx.save();
-      ctx.translate(Math.round((cx + m) * P + (P - iw) / 2), Math.round((cy + m) * P + (P - ih) / 2));
-      ctx.scale(k, k);
-      ctx.translate(-vx, -vy);
-      for (const q of ps) ctx.fill(q.p, q.rule);
-      ctx.restore();
+      drawIcon(ctx, icon, P, (cx + m) * P, (cy + m) * P);
     }
   }
 
   // ---------- Preview ----------
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const WIPE_MS = 1800, HOLD_MS = 650;
+  const WIPE_DIRECTIONS = ["left-to-right", "bottom-to-top", "right-to-left", "top-to-bottom"];
+  let animationFrame = 0, previewScene = null, cycle = null;
+  function stopAnimation() {
+    cancelAnimationFrame(animationFrame);
+    animationFrame = 0;
+    cycle = null;
+  }
+  function nextIcon(icon, seq) {
+    if (seq) return seq[(seq.indexOf(icon) + 1) % seq.length];
+    const index = icons.indexOf(icon);
+    return icons[index >= 1 && index < icons.length - 1 ? index + 1 : 1];
+  }
+  function drawLayer(scene, icon) {
+    const layer = document.createElement("canvas");
+    layer.width = el.preview.width;
+    layer.height = el.preview.height;
+    const ctx = layer.getContext("2d");
+    ctx.setTransform(scene.dpr, 0, 0, scene.dpr, 0, 0);
+    drawCells(ctx, scene.L, scene.P, scene.m, icon);
+    return layer;
+  }
+  function startCycle(scene, from, fromLayer, timestamp, direction = 0) {
+    const to = nextIcon(from, scene.seq);
+    return {
+      to,
+      direction,
+      fromLayer: fromLayer || drawLayer(scene, from),
+      toLayer: drawLayer(scene, to),
+      start: timestamp + HOLD_MS
+    };
+  }
+  // Draws `to` over the revealed part and `from` over the rest. Callers clear or fill the canvas first.
+  function drawWipe(ctx, fromLayer, toLayer, directionIndex, progress, width, height) {
+    const direction = WIPE_DIRECTIONS[directionIndex % WIPE_DIRECTIONS.length];
+    const vertical = direction === "bottom-to-top" || direction === "top-to-bottom";
+    const reverse = direction === "bottom-to-top" || direction === "right-to-left";
+    const extent = vertical ? height : width;
+    const revealed = Math.round(extent * Math.max(0, Math.min(1, progress)));
+    const edge = reverse ? extent - revealed : revealed;
+    const drawSlice = (layer, start, length) => {
+      if (length <= 0) return;
+      if (vertical) ctx.drawImage(layer, 0, start, width, length, 0, start, width, length);
+      else ctx.drawImage(layer, start, 0, length, height, start, 0, length, height);
+    };
+    drawSlice(fromLayer, reverse ? 0 : edge, extent - revealed);
+    drawSlice(toLayer, reverse ? edge : 0, revealed);
+  }
+  function animatePreview(timestamp) {
+    animationFrame = 0;
+    try {
+      const { ctx, seq } = previewScene;
+      if (!cycle) cycle = startCycle(previewScene, seq ? seq[0] : currentIcon(), null, timestamp);
+      if (timestamp >= cycle.start + WIPE_MS) {
+        cycle = startCycle(previewScene, cycle.to, cycle.toLayer, timestamp, (cycle.direction + 1) % WIPE_DIRECTIONS.length);
+      }
+      const width = el.preview.width, height = el.preview.height;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      drawWipe(ctx, cycle.fromLayer, cycle.toLayer, cycle.direction, (timestamp - cycle.start) / WIPE_MS, width, height);
+      animationFrame = requestAnimationFrame(animatePreview);
+    } catch (err) {
+      console.error(err);
+      stopAnimation();
+      state.animate = false;
+      el.animate.checked = false;
+      persist();
+      toast("Couldn't animate the icons. Turn the loop on to try again.");
+    }
+  }
   function render() {
+    stopAnimation();
+    previewScene = null;
+    el.animate.checked = state.animate;
+    const seq = loopSequence();
+    el.animate.disabled = !seq && icons.length < 2;
+    el.animationHint.textContent = reducedMotion.matches
+      ? "Your system prefers reduced motion, so the preview stays still. Check Codicon wipe loop to enable GIF and MP4 export."
+      : el.animate.disabled ? "Animation needs the codicon set to load."
+      : seq ? `Wipes through your ${seq.length} loop icons in order, rotating left to right, bottom to top, right to left, then top to bottom. PNG and SVG keep your selected icon.`
+      : "Wipes through every codicon, rotating left to right, bottom to top, right to left, then top to bottom. PNG and SVG keep your selected icon.";
     const L = layout();
     const empty = !L.letters;
     el.placeholder.hidden = !empty;
@@ -642,6 +832,10 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     el.preview.hidden = empty;
     el.savePng.disabled = empty;
     el.saveSvg.disabled = empty;
+    el.saveGif.disabled = el.saveVideo.disabled = !state.animate || empty || !seq || exporting;
+    const needs = !state.animate ? "Check Codicon wipe loop in the Animation section first." : empty ? "Type some letters first." : !seq ? "Wait for the loop icons to load." : exporting ? "An animation export is in progress." : "";
+    el.saveGif.title = needs || "Save the loop as an animated GIF";
+    el.saveVideo.title = needs || `Save the loop as ${videoFormat ? videoFormat.label : "a video"}`;
 
     el.alignHint.hidden = L.textLines > 1;
     el.skip.hidden = !L.skipped.length;
@@ -674,17 +868,28 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     ctx.clearRect(0, 0, cv.width, cv.height);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     drawCells(ctx, L, P, out.m);
-    cv.setAttribute("aria-label", `Preview: ${String(state.text).toUpperCase()} drawn with the ${ic.label || ic.name} icon`);
+    const animated = state.animate && !el.animate.disabled && !reducedMotion.matches;
+    cv.setAttribute("aria-label", animated
+      ? `Preview: ${String(state.text).toUpperCase()} with codicons changing in rotating wipe directions`
+      : `Preview: ${String(state.text).toUpperCase()} drawn with the ${ic.label || ic.name} icon`);
+    if (animated && !document.hidden) {
+      previewScene = { ctx, L, P, m: out.m, dpr, seq };
+      animationFrame = requestAnimationFrame(animatePreview);
+    }
   }
   // Redraw right away on every change. Drawing is cheap, and embedded frames can pause animation frames.
   const schedule = () => { try { render(); } catch (err) { console.error(err); } };
   if (window.ResizeObserver) new ResizeObserver(schedule).observe(el.stage);
   window.addEventListener("resize", schedule);
+  el.animate.addEventListener("change", () => { state.animate = el.animate.checked; persist(); schedule(); });
+  reducedMotion.addEventListener("change", schedule);
+  document.addEventListener("visibilitychange", schedule);
+  window.addEventListener("pagehide", stopAnimation);
 
   // ---------- Export ----------
-  function slug() {
+  function slug(iconPart = currentIcon().name || "icon") {
     const t = String(state.text).toLowerCase().replace(/[^a-z]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "text";
-    const i = (currentIcon().name || "icon").replace(/[^a-z0-9-]+/gi, "-").toLowerCase();
+    const i = iconPart.replace(/[^a-z0-9-]+/gi, "-").toLowerCase();
     return `codicon-${t}-${i}`;
   }
   function makePng() {
@@ -712,6 +917,243 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     ).join("\n");
     return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">\n<defs><g id="sq">${shapes}</g></defs>\n<g fill="${state.color}">\n${uses}\n</g>\n</svg>\n`;
   }
+
+  // ---------- Animated export ----------
+  // One seamless loop: every loop icon in order, with enough passes to show all four wipe directions.
+  const FRAME_MS = 50;
+  const GIF_MAX_PIXELS = 4e6, VIDEO_MAX_SIDE = 3840, VIDEO_MAX_PIXELS = 3840 * 2160;
+  let exporting = false;
+  const hexRgb = (hex) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  function matteRgb() {
+    const m = getComputedStyle(el.stage).backgroundColor.match(/\d+(\.\d+)?/g);
+    return m && m.length >= 3 ? m.slice(0, 3).map(Number) : effectiveTheme() === "dark" ? [37, 37, 38] : [243, 243, 243];
+  }
+  function prepareLoop(format) {
+    const L = layout();
+    const seq = loopSequence();
+    if (!L.letters) throw new Error("Type some letters first.");
+    if (!seq) throw new Error("Add 2 to 5 loop icons in the Animation section first.");
+    const P = state.size;
+    let { w, h, m } = frame(L, P);
+    if (format === "gif" && w * h > GIF_MAX_PIXELS) throw new Error(`A ${w} × ${h} px GIF would be too heavy. Pick a smaller image size.`);
+    if (format === "video") {
+      // Most video encoders need even dimensions.
+      w += w & 1; h += h & 1;
+      if (Math.max(w, h) > VIDEO_MAX_SIDE || w * h > VIDEO_MAX_PIXELS) throw new Error(`A ${w} × ${h} px video is larger than 4K. Pick a smaller image size.`);
+    }
+    const layers = new Map();
+    for (const icon of seq) {
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      drawCells(c.getContext("2d"), L, P, m, icon);
+      layers.set(icon, c);
+    }
+    const transitions = seq.length * Math.ceil(WIPE_DIRECTIONS.length / seq.length);
+    return { w, h, seq, layers, transitions, cycleMs: HOLD_MS + WIPE_MS };
+  }
+  // Draws the loop at time t (ms); t past the end wraps to the start.
+  function drawLoopAt(ctx, loop, t) {
+    const { seq, layers, transitions, cycleMs, w, h } = loop;
+    t = ((t % (transitions * cycleMs)) + transitions * cycleMs) % (transitions * cycleMs);
+    const i = Math.floor(t / cycleMs);
+    const from = seq[i % seq.length], to = seq[(i + 1) % seq.length];
+    drawWipe(ctx, layers.get(from), layers.get(to), i, (t - i * cycleMs - HOLD_MS) / WIPE_MS, w, h);
+  }
+  const nextTick = () => new Promise(r => setTimeout(r, 0));
+
+  // GIF89a with a 256-entry palette indexed by alpha: the art is one color, so each pixel is
+  // the stage background blended toward the ink by its coverage.
+  function gifWriter(w, h, palette) {
+    let buf = new Uint8Array(1 << 20), len = 0;
+    const byte = (b) => {
+      if (len === buf.length) { const n = new Uint8Array(buf.length * 2); n.set(buf); buf = n; }
+      buf[len++] = b;
+    };
+    const u16 = (v) => { byte(v & 255); byte((v >> 8) & 255); };
+    const text = (s) => { for (const ch of s) byte(ch.charCodeAt(0)); };
+    text("GIF89a"); u16(w); u16(h);
+    byte(0xF7); byte(0); byte(0);
+    for (const b of palette) byte(b);
+    byte(0x21); byte(0xFF); byte(11); text("NETSCAPE2.0"); byte(3); byte(1); u16(0); byte(0);
+    const keys = new Int32Array(8192), codes = new Int16Array(8192);
+    function lzw(px) {
+      const MIN = 8, CLEAR = 256, EOI = 257;
+      let size = MIN + 1, next = EOI + 1, cur = 0, bits = 0;
+      const block = new Uint8Array(255);
+      let blen = 0;
+      const out = (b) => { block[blen++] = b; if (blen === 255) { byte(255); for (let i = 0; i < 255; i++) byte(block[i]); blen = 0; } };
+      const emit = (code) => { cur |= code << bits; bits += size; while (bits >= 8) { out(cur & 255); cur >>>= 8; bits -= 8; } };
+      byte(MIN);
+      keys.fill(0);
+      emit(CLEAR);
+      let prefix = px[0];
+      for (let i = 1; i < px.length; i++) {
+        const k = px[i], key = ((prefix << 8) | k) + 1;
+        let slot = Math.imul(key, 0x9E3779B1) >>> 19, found = -1;
+        while (keys[slot]) {
+          if (keys[slot] === key) { found = codes[slot]; break; }
+          slot = (slot + 1) & 8191;
+        }
+        if (found >= 0) { prefix = found; continue; }
+        emit(prefix);
+        if (next === 4096) {
+          emit(CLEAR);
+          keys.fill(0);
+          size = MIN + 1; next = EOI + 1;
+        } else {
+          if (next >= (1 << size)) size++;
+          keys[slot] = key; codes[slot] = next++;
+        }
+        prefix = k;
+      }
+      emit(prefix);
+      emit(EOI);
+      if (bits > 0) out(cur & 255);
+      if (blen) { byte(blen); for (let i = 0; i < blen; i++) byte(block[i]); }
+      byte(0);
+    }
+    return {
+      frame(px, delayCs, x, y, fw, fh) {
+        // Graphic control: keep earlier frames so each frame only carries the strip that changed.
+        byte(0x21); byte(0xF9); byte(4); byte(0x04); u16(delayCs); byte(0); byte(0);
+        byte(0x2C); u16(x); u16(y); u16(fw); u16(fh); byte(0);
+        lzw(px);
+      },
+      finish() { byte(0x3B); return buf.slice(0, len); }
+    };
+  }
+  async function makeGif(progress) {
+    const loop = prepareLoop("gif");
+    const { w, h, transitions, cycleMs } = loop;
+    const ink = hexRgb(state.color), matte = matteRgb();
+    const palette = [];
+    for (let a = 0; a < 256; a++) for (let c = 0; c < 3; c++) palette.push(Math.round(matte[c] + (ink[c] - matte[c]) * a / 255));
+    const gif = gifWriter(w, h, palette);
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const px = new Uint8Array(w * h), prev = new Uint8Array(w * h);
+    // Per transition: one hold frame, then the wipe in FRAME_MS steps. Its last step is the next hold frame.
+    const steps = Math.round(WIPE_MS / FRAME_MS);
+    const times = [];
+    for (let i = 0; i < transitions; i++) {
+      times.push([i * cycleMs, HOLD_MS + FRAME_MS]);
+      for (let k = 1; k < steps; k++) times.push([i * cycleMs + HOLD_MS + k * FRAME_MS, FRAME_MS]);
+    }
+    let pending = null;
+    const flush = () => { if (pending) gif.frame(pending.sub, Math.round(pending.ms / 10), pending.x, pending.y, pending.w, pending.h); };
+    for (let f = 0; f < times.length; f++) {
+      const [t, ms] = times[f];
+      ctx.clearRect(0, 0, w, h);
+      drawLoopAt(ctx, loop, t);
+      const data = ctx.getImageData(0, 0, w, h).data;
+      let x0 = w, y0 = h, x1 = -1, y1 = -1;
+      for (let i = 0, j = 3; i < px.length; i++, j += 4) {
+        const a = data[j];
+        px[i] = a;
+        if (f && a !== prev[i]) {
+          const x = i % w, y = (i - x) / w;
+          if (x < x0) x0 = x; if (x > x1) x1 = x;
+          if (y < y0) y0 = y; if (y > y1) y1 = y;
+        }
+      }
+      if (!f) { x0 = 0; y0 = 0; x1 = w - 1; y1 = h - 1; }
+      if (x1 < 0) { pending.ms += ms; }
+      else {
+        flush();
+        const fw = x1 - x0 + 1, fh = y1 - y0 + 1;
+        const sub = new Uint8Array(fw * fh);
+        for (let y = 0; y < fh; y++) sub.set(px.subarray((y0 + y) * w + x0, (y0 + y) * w + x0 + fw), y * fw);
+        pending = { sub, ms, x: x0, y: y0, w: fw, h: fh };
+      }
+      prev.set(px);
+      if (f % 4 === 3) { progress((f + 1) / times.length); await nextTick(); }
+    }
+    flush();
+    return new Blob([gif.finish()], { type: "image/gif" });
+  }
+
+  // Video records the loop in real time from a canvas. MP4 where the browser can record it, otherwise WebM.
+  const videoFormat = (() => {
+    if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) return null;
+    const options = [
+      ["video/mp4;codecs=avc1.42E01F", "mp4", "MP4"], ["video/mp4;codecs=avc1", "mp4", "MP4"], ["video/mp4", "mp4", "MP4"],
+      ["video/webm;codecs=vp9", "webm", "WebM"], ["video/webm;codecs=vp8", "webm", "WebM"], ["video/webm", "webm", "WebM"]
+    ];
+    for (const [mime, ext, label] of options) {
+      try { if (MediaRecorder.isTypeSupported(mime)) return { mime, ext, label }; } catch (e) {}
+    }
+    return null;
+  })();
+  el.saveVideo.hidden = !videoFormat;
+  if (videoFormat) el.saveVideo.textContent = `Save ${videoFormat.label}`;
+  async function makeVideo(progress) {
+    const loop = prepareLoop("video");
+    const { w, h, transitions, cycleMs } = loop;
+    const total = transitions * cycleMs;
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    const [r, g, b] = matteRgb();
+    const draw = (t) => {
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(0, 0, w, h);
+      drawLoopAt(ctx, loop, t);
+    };
+    draw(0);
+    const stream = canvas.captureStream(30);
+    const recorder = new MediaRecorder(stream, { mimeType: videoFormat.mime, videoBitsPerSecond: Math.min(16e6, Math.max(2e6, w * h * 6)) });
+    const chunks = [];
+    recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    const stopped = new Promise((res, rej) => {
+      recorder.onstop = res;
+      recorder.onerror = (e) => rej(e.error || new Error("The browser couldn’t record the video."));
+    });
+    recorder.start(250);
+    const start = performance.now();
+    await new Promise(res => {
+      const tick = () => {
+        const t = performance.now() - start;
+        if (t >= total) { draw(total); res(); return; }
+        draw(t);
+        progress(t / total);
+        setTimeout(tick, 1000 / 60);
+      };
+      tick();
+    });
+    await new Promise(r => setTimeout(r, 150));
+    recorder.stop();
+    await stopped;
+    for (const track of stream.getTracks()) track.stop();
+    const blob = new Blob(chunks, { type: videoFormat.mime.split(";")[0] });
+    if (!blob.size) throw new Error("The browser recorded an empty video. Try again with the tab in front.");
+    return blob;
+  }
+  async function saveAnimation(kind) {
+    if (exporting) return;
+    exporting = true;
+    const button = kind === "gif" ? el.saveGif : el.saveVideo;
+    const name = kind === "gif" ? "GIF" : videoFormat.label;
+    const label = button.textContent;
+    el.saveGif.disabled = el.saveVideo.disabled = true;
+    const progress = (p) => { button.textContent = `${kind === "gif" ? "Making" : "Recording"} ${name}… ${Math.floor(p * 100)}%`; };
+    progress(0);
+    try {
+      if (kind !== "gif") toast(`Recording one loop in real time. Keep this tab open.`);
+      const blob = kind === "gif" ? await makeGif(progress) : await makeVideo(progress);
+      const ext = kind === "gif" ? "gif" : videoFormat.ext;
+      await saveFile(`${slug("loop")}.${ext}`, blob, ext);
+    } catch (err) {
+      console.error(err);
+      toast(err.message || `Couldn’t make the ${name}`);
+    } finally {
+      exporting = false;
+      button.textContent = label;
+      schedule();
+    }
+  }
+  el.saveGif.addEventListener("click", () => saveAnimation("gif"));
+  el.saveVideo.addEventListener("click", () => saveAnimation("video"));
 
   let downloads = null;
   const host = () => !!(window.claude && typeof window.claude.use === "function");
@@ -752,12 +1194,20 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     el.sheetTitle.textContent = `Save ${filename}`;
     el.sheetHint.textContent = kind === "svg"
       ? "This view can’t save files directly. Copy the SVG code below, or right-click the image and choose Save Image As."
-      : "This view can’t save files directly. Right-click the image (or long-press on a phone) and choose Save Image As. The background stays transparent.";
+      : kind === "mp4" || kind === "webm"
+        ? "This view can’t save files directly. Right-click the video and choose Save Video As."
+        : kind === "gif"
+          ? "This view can’t save files directly. Right-click the animation (or long-press on a phone) and choose Save Image As."
+          : "This view can’t save files directly. Right-click the image (or long-press on a phone) and choose Save Image As. The background stays transparent.";
     el.sheetShot.innerHTML = "";
-    const img = new Image();
-    img.src = sheetUrl;
-    img.alt = filename;
-    el.sheetShot.appendChild(img);
+    const media = kind === "mp4" || kind === "webm" ? document.createElement("video") : new Image();
+    media.src = sheetUrl;
+    if (media instanceof HTMLVideoElement) {
+      media.controls = media.loop = media.muted = media.autoplay = true;
+      media.style.maxWidth = "100%";
+      media.setAttribute("aria-label", filename);
+    } else media.alt = filename;
+    el.sheetShot.appendChild(media);
     el.sheetCode.hidden = el.sheetCopy.hidden = kind !== "svg";
     if (kind === "svg") el.sheetCode.value = data;
     el.sheet.hidden = false;
