@@ -727,9 +727,11 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     }
   }
   const bleed = () => Math.max(0, (state.scale / 100 - 1) / 2);
+  // Saved images get this much empty space on every side.
+  const EXPORT_PAD = 24;
   function frame(L, P) {
     const m = bleed();
-    return { m, w: Math.round((L.W + 2 * m) * P), h: Math.round((L.H + 2 * m) * P) };
+    return { m, pad: EXPORT_PAD, w: Math.round((L.W + 2 * m) * P) + 2 * EXPORT_PAD, h: Math.round((L.H + 2 * m) * P) + 2 * EXPORT_PAD };
   }
   function drawIcon(ctx, icon, P, x, y) {
     const ps = path2d(icon);
@@ -904,17 +906,19 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
   function makePng() {
     const L = layout();
     const P = state.size;
-    const { w, h, m } = frame(L, P);
+    const { w, h, m, pad } = frame(L, P);
     if (w > 16384 || h > 16384 || w * h > 100e6) throw new Error(`That would be ${w} × ${h} px, too large to save. Pick a smaller square size.`);
     const c = document.createElement("canvas");
     c.width = w; c.height = h;
-    drawCells(c.getContext("2d"), L, P, m);
+    const ctx = c.getContext("2d");
+    ctx.translate(pad, pad);
+    drawCells(ctx, L, P, m);
     return new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error("The browser couldn’t encode the PNG.")), "image/png"));
   }
   function makeSvg() {
     const L = layout();
     const P = state.size;
-    const { w, h, m } = frame(L, P);
+    const { w, h, m, pad } = frame(L, P);
     const icon = currentIcon();
     const [vx, vy, vw, vh] = icon.vb;
     const k = (P * state.scale / 100) / Math.max(vw, vh);
@@ -922,7 +926,7 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     const r = (v, d = 3) => +v.toFixed(d);
     const shapes = icon.paths.map(p => `<path d="${escAttr(p.d)}"${p.rule === "evenodd" ? ' fill-rule="evenodd"' : ""}/>`).join("");
     const uses = L.cells.map(([cx, cy]) =>
-      `<use href="#sq" xlink:href="#sq" transform="translate(${r((cx + m) * P + (P - iw) / 2)} ${r((cy + m) * P + (P - ih) / 2)}) scale(${r(k, 6)})${vx || vy ? ` translate(${-vx} ${-vy})` : ""}"/>`
+      `<use href="#sq" xlink:href="#sq" transform="translate(${r(pad + (cx + m) * P + (P - iw) / 2)} ${r(pad + (cy + m) * P + (P - ih) / 2)}) scale(${r(k, 6)})${vx || vy ? ` translate(${-vx} ${-vy})` : ""}"/>`
     ).join("\n");
     return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">\n<defs><g id="sq">${shapes}</g></defs>\n<g fill="${state.color}">\n${uses}\n</g>\n</svg>\n`;
   }
@@ -1301,7 +1305,7 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     if (!L.letters) throw new Error("Type some letters first.");
     if (!seq) throw new Error("Add 2 to 5 loop icons in the Animation section first.");
     const P = state.size;
-    let { w, h, m } = frame(L, P);
+    let { w, h, m, pad } = frame(L, P);
     if (format === "gif" && w * h > GIF_MAX_PIXELS) throw new Error(`A ${w} × ${h} px GIF would be too heavy. Pick a smaller image size.`);
     if (format === "video") {
       // Most video encoders need even dimensions.
@@ -1312,7 +1316,9 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     for (const icon of seq) {
       const c = document.createElement("canvas");
       c.width = w; c.height = h;
-      drawCells(c.getContext("2d"), L, P, m, icon);
+      const ctx = c.getContext("2d");
+      ctx.translate(pad, pad);
+      drawCells(ctx, L, P, m, icon);
       layers.set(icon, c);
     }
     const transitions = seq.length * Math.ceil(WIPE_DIRECTIONS.length / seq.length);
