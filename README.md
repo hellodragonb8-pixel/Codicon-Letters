@@ -16,7 +16,7 @@ One type family with inputs and outputs: Express what you want to say with lette
 
 ## Animation
 
-Check **Codicon wipe loop** to play the animation. Click any loop icon to swap it for another, then use **Save GIF** or **Save MP4**. PNG and SVG exports stay static.
+Check **Codicon wipe loop** to play the animation. Click any loop icon to swap it for another, then use **Save GIF** or **Save MP4**.
 
 ## Download
 
