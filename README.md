@@ -4,31 +4,30 @@
 
 # Codicon Letters
 
-Type a word and it's drawn in a pixel font where every square is a VS Code codicon. Save the result as a PNG with a transparent background, or as an SVG.
+One type family with inputs and outputs: Express what you want to say with letters built from VS Code codicons, then save a PNG, download a font, or save a GIF of your animation.
 
 ## Features
 
 - Uppercase A–Z plus ! and -; lowercase letters are automatically capitalized as you type
 - Any custom color
 - Five export sizes, from Extra small to Extra large
-- Optional wipe animation: sweeps change the codicons across the whole design, cycling left to right, bottom to top, right to left, then top to bottom
-- Start with 5 default loop icons, click any to replace it, and save the animation as a GIF or MP4
+- Optional wipe animation that cycles through up to 5 icons, saved as a GIF or MP4
+- Download your chosen icon as an installable font (.ttf)
 
-Enable **Codicon wipe loop** under Animation to start the preview animation. Turn it off to return to your selected icon. The setting is remembered, but animation stays off when your system requests reduced motion. The loop stops while the page is hidden and restarts when it becomes visible. PNG and SVG exports remain static and use your selected icon, not an in-progress wipe.
+## Animation
 
-The loop starts with star, heart, flame, gear, and rocket icons. Click any **Loop icon**, then choose its replacement in the icon grid above; **Cancel replacement** leaves it unchanged. Your static PNG/SVG icon is not changed. You can remove icons with × (keeping at least 2), or select an icon and click **Add** to bring the loop back up to 5. Existing saved loops are kept; empty or single-icon loops are filled with defaults.
+Check **Codicon wipe loop** to play the animation. Click any loop icon to swap it for another, then use **Save GIF** or **Save MP4**. PNG and SVG exports stay static.
 
-Check **Codicon wipe loop** to enable **Save GIF** and **Save MP4**. Export also needs non-empty text and loaded loop icons, and is disabled while another animation export is running. Reduced-motion settings keep the preview still without preventing export. The buttons export one seamless loop of your icons at the chosen image size, long enough to show all four wipe directions. Both use the preview's light or dark stage color as an opaque background. The GIF is encoded in the page. The video is recorded in real time with the browser's MediaRecorder, so keep the tab open for the ~10 to 15 seconds it takes. Browsers that can't record MP4 offer **Save WebM** instead. GIFs are limited to 4 million pixels per frame and videos to 4K.
+## Download
 
-## Run it locally
+Select an icon and download its font to install and use in apps like Figma or Word. After installing, restart the app, then select the Customize Codicon font in Regular.
 
-The page loads its font and icons from separate files, so open it through a local web server rather than double-clicking the file:
+## Open the app with Copilot in VS Code
 
-```
-python3 -m http.server 8000
-```
+After cloning the repository, ask Copilot:
 
-Then visit http://localhost:8000
+PROMPT:
+> Please check whether this repo has a live build and open it. Open the latest running app in the browser
 
 ## Files
 

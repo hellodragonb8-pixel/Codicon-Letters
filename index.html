@@ -275,6 +275,14 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
         </div>
       </section>
 
+      <section class="section" aria-labelledby="h-font">
+        <h2 id="h-font">Font</h2>
+        <p class="hint" id="font-hint">Select an icon and download its font to install and use in apps like Figma or Word. After installing, restart the app, then select the Customize Codicon font in Regular.</p>
+        <div class="row">
+          <button type="button" class="btn" id="save-ttf" aria-describedby="font-hint">Download font</button>
+        </div>
+      </section>
+
     </aside>
 
     <main class="editor">
@@ -424,7 +432,7 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     placeholder: $("placeholder"), size: $("size"), savePng: $("save-png"), saveSvg: $("save-svg"),
     animate: $("animate"), animationHint: $("animation-hint"),
     loopList: $("loop-list"), loopAdd: $("loop-add"), loopCount: $("loop-count"), loopHint: $("loop-hint"),
-    saveGif: $("save-gif"), saveVideo: $("save-video"),
+    saveGif: $("save-gif"), saveVideo: $("save-video"), saveTtf: $("save-ttf"),
     stIcon: $("st-icon"), stLetters: $("st-letters"), toast: $("toast"),
     svgFile: $("svg-file"), svgPaste: $("svg-paste"), svgUse: $("svg-use"), svgError: $("svg-error"), customDetails: $("custom-details"),
     sheet: $("sheet"), sheetTitle: $("sheet-title"), sheetHint: $("sheet-hint"), sheetShot: $("sheet-shot"), sheetCode: $("sheet-code"), sheetCopy: $("sheet-copy"), sheetClose: $("sheet-close")
@@ -832,6 +840,7 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     el.preview.hidden = empty;
     el.savePng.disabled = empty;
     el.saveSvg.disabled = empty;
+    el.saveTtf.disabled = !fontReady || savingFont;
     el.saveGif.disabled = el.saveVideo.disabled = !state.animate || empty || !seq || exporting;
     const needs = !state.animate ? "Check Codicon wipe loop in the Animation section first." : empty ? "Type some letters first." : !seq ? "Wait for the loop icons to load." : exporting ? "An animation export is in progress." : "";
     el.saveGif.title = needs || "Save the loop as an animated GIF";
@@ -917,6 +926,364 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     ).join("\n");
     return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">\n<defs><g id="sq">${shapes}</g></defs>\n<g fill="${state.color}">\n${uses}\n</g>\n</svg>\n`;
   }
+
+  // ---------- Font export ----------
+  // Builds a TrueType font in the page. The icon is one outline glyph; each letter places it on
+  // the 8 × 7 grid as composite references, and the optical spacing pairs become kerning.
+  const UPM = 2048, CELL = 256;
+  let savingFont = false;
+
+  // Parses SVG path data into closed contours of absolute L, Q and C segments.
+  function parsePathData(d) {
+    const s = String(d);
+    let i = 0;
+    const skip = () => { while (i < s.length && /[\s,]/.test(s[i])) i++; };
+    const num = () => {
+      skip();
+      const m = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/.exec(s.slice(i, i + 40));
+      if (!m) throw new Error("Bad path data");
+      i += m[0].length;
+      return parseFloat(m[0]);
+    };
+    const flag = () => { skip(); const c = s[i++]; if (c !== "0" && c !== "1") throw new Error("Bad arc flag"); return c === "1"; };
+    const contours = [];
+    let cur = null, x = 0, y = 0, sx = 0, sy = 0, cmd = "", lastC = null, lastQ = null;
+    const start = () => { if (!cur) { cur = { x: sx = x, y: sy = y, segs: [] }; contours.push(cur); } };
+    const line = (nx, ny) => { start(); cur.segs.push({ t: "L", x: nx, y: ny }); x = nx; y = ny; };
+    const cubic = (a, b, c, e, nx, ny) => { start(); cur.segs.push({ t: "C", a, b, c, d: e, x: nx, y: ny }); lastC = [c, e]; x = nx; y = ny; };
+    const quad = (a, b, nx, ny) => { start(); cur.segs.push({ t: "Q", a, b, x: nx, y: ny }); lastQ = [a, b]; x = nx; y = ny; };
+    while (true) {
+      skip();
+      if (i >= s.length) break;
+      if (/[a-z]/i.test(s[i])) cmd = s[i++];
+      else if (!cmd || /[zZ]/.test(cmd)) throw new Error("Bad path data");
+      const rel = cmd === cmd.toLowerCase(), C = cmd.toUpperCase();
+      const ox = rel ? x : 0, oy = rel ? y : 0;
+      const keepC = lastC, keepQ = lastQ;
+      lastC = lastQ = null;
+      switch (C) {
+        case "M": x = num() + ox; y = num() + oy; cur = null; start(); cmd = rel ? "l" : "L"; break;
+        case "L": { const nx = num() + ox; line(nx, num() + oy); break; }
+        case "H": line(num() + ox, y); break;
+        case "V": line(x, num() + oy); break;
+        case "C": { const a = num() + ox, b = num() + oy, c = num() + ox, e = num() + oy, nx = num() + ox; cubic(a, b, c, e, nx, num() + oy); break; }
+        case "S": {
+          const [a, b] = keepC ? [2 * x - keepC[0], 2 * y - keepC[1]] : [x, y];
+          const c = num() + ox, e = num() + oy, nx = num() + ox; cubic(a, b, c, e, nx, num() + oy); break;
+        }
+        case "Q": { const a = num() + ox, b = num() + oy, nx = num() + ox; quad(a, b, nx, num() + oy); break; }
+        case "T": {
+          const [a, b] = keepQ ? [2 * x - keepQ[0], 2 * y - keepQ[1]] : [x, y];
+          const nx = num() + ox; quad(a, b, nx, num() + oy); break;
+        }
+        case "A": {
+          const rx = num(), ry = num(), rot = num(), large = flag(), sweep = flag(), nx = num() + ox, ny = num() + oy;
+          start();
+          for (const c of arcToCubics(x, y, rx, ry, rot, large, sweep, nx, ny)) cubic(...c);
+          x = nx; y = ny; lastC = null; break;
+        }
+        case "Z": if (cur) { x = sx; y = sy; } cur = null; break;
+        default: throw new Error("Bad path data");
+      }
+    }
+    return contours;
+  }
+  // SVG arc to cubic Béziers, following the SVG implementation notes.
+  function arcToCubics(x1, y1, rx, ry, rotDeg, large, sweep, x2, y2) {
+    if (x1 === x2 && y1 === y2) return [];
+    rx = Math.abs(rx); ry = Math.abs(ry);
+    if (!rx || !ry) return [[x1, y1, x2, y2, x2, y2]];
+    const phi = rotDeg * Math.PI / 180, cos = Math.cos(phi), sin = Math.sin(phi);
+    const dx = (x1 - x2) / 2, dy = (y1 - y2) / 2;
+    const x1p = cos * dx + sin * dy, y1p = -sin * dx + cos * dy;
+    const lambda = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry);
+    if (lambda > 1) { const k = Math.sqrt(lambda); rx *= k; ry *= k; }
+    const num = rx * rx * ry * ry - rx * rx * y1p * y1p - ry * ry * x1p * x1p;
+    const den = rx * rx * y1p * y1p + ry * ry * x1p * x1p;
+    const co = (large === sweep ? -1 : 1) * Math.sqrt(Math.max(0, num / den));
+    const cxp = co * rx * y1p / ry, cyp = -co * ry * x1p / rx;
+    const cx = cos * cxp - sin * cyp + (x1 + x2) / 2, cy = sin * cxp + cos * cyp + (y1 + y2) / 2;
+    const ang = (ux, uy, vx, vy) => Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
+    const t1 = ang(1, 0, (x1p - cxp) / rx, (y1p - cyp) / ry);
+    let dt = ang((x1p - cxp) / rx, (y1p - cyp) / ry, (-x1p - cxp) / rx, (-y1p - cyp) / ry);
+    if (!sweep && dt > 0) dt -= 2 * Math.PI;
+    if (sweep && dt < 0) dt += 2 * Math.PI;
+    const n = Math.ceil(Math.abs(dt) / (Math.PI / 2) - 1e-9), step = dt / n;
+    const kk = 4 / 3 * Math.tan(step / 4);
+    const pt = (t) => [cx + rx * Math.cos(t) * cos - ry * Math.sin(t) * sin, cy + rx * Math.cos(t) * sin + ry * Math.sin(t) * cos];
+    const dv = (t) => [-rx * Math.sin(t) * cos - ry * Math.cos(t) * sin, -rx * Math.sin(t) * sin + ry * Math.cos(t) * cos];
+    const out = [];
+    for (let j = 0; j < n; j++) {
+      const a = t1 + j * step, b = a + step;
+      const [ax, ay] = pt(a), [bx, by] = j === n - 1 ? [x2, y2] : pt(b), [dax, day] = dv(a), [dbx, dby] = dv(b);
+      out.push([ax + kk * dax, ay + kk * day, bx - kk * dbx, by - kk * dby, bx, by]);
+    }
+    return out;
+  }
+  // Cubic to quadratic curves, split until each piece is within tol font units.
+  function cubicToQuads(p0, p1, p2, p3, out, tol = 0.5, depth = 0) {
+    const ex = p3[0] - 3 * p2[0] + 3 * p1[0] - p0[0], ey = p3[1] - 3 * p2[1] + 3 * p1[1] - p0[1];
+    if (depth >= 8 || Math.sqrt(3) / 36 * Math.hypot(ex, ey) <= tol) {
+      out.push([(3 * (p1[0] + p2[0]) - p0[0] - p3[0]) / 4, (3 * (p1[1] + p2[1]) - p0[1] - p3[1]) / 4], p3);
+      return;
+    }
+    const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const a = mid(p0, p1), b = mid(p1, p2), c = mid(p2, p3), ab = mid(a, b), bc = mid(b, c), m = mid(ab, bc);
+    cubicToQuads(p0, a, ab, m, out, tol, depth + 1);
+    cubicToQuads(m, bc, c, p3, out, tol, depth + 1);
+  }
+  const contourArea = (pts) => pts.reduce((sum, p, j) => { const q = pts[(j + 1) % pts.length]; return sum + p.x * q.y - q.x * p.y; }, 0) / 2;
+  const insidePolygon = (x, y, pts) => {
+    let inside = false;
+    for (let j = 0, k = pts.length - 1; j < pts.length; k = j++) {
+      const a = pts[j], b = pts[k];
+      if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+    }
+    return inside;
+  };
+  // Converts an icon to TrueType contours placed in one grid cell (y up, clockwise outers).
+  function iconContours(icon) {
+    const [vx, vy, vw, vh] = icon.vb;
+    const k = CELL / Math.max(vw, vh);
+    const ox = (CELL - vw * k) / 2, oy = (CELL - vh * k) / 2;
+    const T = (x, y) => [ox + (x - vx) * k, CELL - (oy + (y - vy) * k)];
+    const all = [];
+    for (const path of icon.paths) {
+      const group = [];
+      for (const c of parsePathData(path.d)) {
+        let p = T(c.x, c.y);
+        const raw = [{ x: p[0], y: p[1], on: true }];
+        for (const sg of c.segs) {
+          const end = T(sg.x, sg.y);
+          if (sg.t === "Q") { const q = T(sg.a, sg.b); raw.push({ x: q[0], y: q[1], on: false }); }
+          else if (sg.t === "C") {
+            const out = [];
+            cubicToQuads(p, T(sg.a, sg.b), T(sg.c, sg.d), end, out);
+            for (let j = 0; j < out.length - 2; j += 2) raw.push({ x: out[j][0], y: out[j][1], on: false }, { x: out[j + 1][0], y: out[j + 1][1], on: true });
+            raw.push({ x: out[out.length - 2][0], y: out[out.length - 2][1], on: false });
+          }
+          raw.push({ x: end[0], y: end[1], on: true });
+          p = end;
+        }
+        const pts = [];
+        for (const q of raw) {
+          const r = { x: Math.round(q.x), y: Math.round(q.y), on: q.on };
+          const prev = pts[pts.length - 1];
+          if (prev && prev.x === r.x && prev.y === r.y && prev.on === r.on) continue;
+          pts.push(r);
+        }
+        while (pts.length > 1 && pts[0].x === pts[pts.length - 1].x && pts[0].y === pts[pts.length - 1].y && pts[pts.length - 1].on) pts.pop();
+        if (pts.length >= 3 && Math.abs(contourArea(pts)) >= 1) group.push(pts);
+      }
+      if (!group.length) continue;
+      if (path.rule === "evenodd") {
+        // Nonzero filling needs holes wound against their parents: alternate by nesting depth.
+        for (const pts of group) {
+          const depth = group.filter(o => o !== pts && insidePolygon(pts[0].x + 0.01, pts[0].y + 0.01, o)).length;
+          if ((contourArea(pts) < 0) !== (depth % 2 === 0)) pts.reverse();
+        }
+      } else {
+        // Separate paths fill independently on canvas, so give each path's outer contour the same winding.
+        const outer = group.reduce((a, b) => Math.abs(contourArea(b)) > Math.abs(contourArea(a)) ? b : a);
+        if (contourArea(outer) > 0) for (const pts of group) pts.reverse();
+      }
+      all.push(...group);
+    }
+    return all;
+  }
+
+  // Big-endian byte writer.
+  function bytesOut() {
+    const a = [];
+    const w = {
+      a,
+      u8: (v) => { a.push(v & 255); return w; },
+      u16: (v) => { a.push((v >> 8) & 255, v & 255); return w; },
+      i16: (v) => w.u16(v < 0 ? v + 65536 : v),
+      u32: (v) => { a.push((v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255); return w; },
+      tag: (t) => { for (const ch of t) a.push(ch.charCodeAt(0)); return w; },
+      bytes: (b) => { for (const v of b) a.push(v); return w; },
+      pad: () => { while (a.length % 4) a.push(0); return w; }
+    };
+    return w;
+  }
+  const bboxOf = (pts) => pts.reduce((b, p) => [Math.min(b[0], p.x), Math.min(b[1], p.y), Math.max(b[2], p.x), Math.max(b[3], p.y)], [Infinity, Infinity, -Infinity, -Infinity]);
+  function simpleGlyph(contours) {
+    const pts = contours.flat();
+    const bb = bboxOf(pts);
+    const w = bytesOut().i16(contours.length).i16(bb[0]).i16(bb[1]).i16(bb[2]).i16(bb[3]);
+    let end = -1;
+    for (const c of contours) w.u16(end += c.length);
+    w.u16(0);
+    const flags = [], xs = bytesOut(), ys = bytesOut();
+    let px = 0, py = 0;
+    pts.forEach((p, j) => {
+      let f = (p.on ? 1 : 0) | (j === 0 ? 64 : 0);
+      const dx = p.x - px, dy = p.y - py;
+      if (dx === 0) f |= 16; else if (Math.abs(dx) < 256) { f |= 2 | (dx > 0 ? 16 : 0); xs.u8(Math.abs(dx)); } else xs.i16(dx);
+      if (dy === 0) f |= 32; else if (Math.abs(dy) < 256) { f |= 4 | (dy > 0 ? 32 : 0); ys.u8(Math.abs(dy)); } else ys.i16(dy);
+      flags.push(f); px = p.x; py = p.y;
+    });
+    w.bytes(flags).bytes(xs.a).bytes(ys.a).pad();
+    return { data: w.a, bb, points: pts.length, contours: contours.length };
+  }
+  function compositeGlyph(gid, iconBb, offsets) {
+    const bb = offsets.reduce((b, [dx, dy]) => [Math.min(b[0], iconBb[0] + dx), Math.min(b[1], iconBb[1] + dy), Math.max(b[2], iconBb[2] + dx), Math.max(b[3], iconBb[3] + dy)], [Infinity, Infinity, -Infinity, -Infinity]);
+    const w = bytesOut().i16(-1).i16(bb[0]).i16(bb[1]).i16(bb[2]).i16(bb[3]);
+    // ARG_1_AND_2_ARE_WORDS | ARGS_ARE_XY_VALUES | ROUND_XY_TO_GRID, MORE_COMPONENTS, OVERLAP_COMPOUND on the first.
+    offsets.forEach(([dx, dy], j) => w.u16(0x7 | (j < offsets.length - 1 ? 0x20 : 0) | (j === 0 ? 0x400 : 0)).u16(gid).i16(dx).i16(dy));
+    w.pad();
+    return { data: w.a, bb };
+  }
+  const tableSum = (b) => { let s = 0; for (let j = 0; j < b.length; j += 4) s = (s + ((b[j] << 24) | ((b[j + 1] || 0) << 16) | ((b[j + 2] || 0) << 8) | (b[j + 3] || 0))) >>> 0; return s; };
+
+  function fontNames(icon) {
+    const words = (icon === custom ? "Custom" : icon.name).split(/[^a-z0-9]+/i).filter(Boolean).map(s => s[0].toUpperCase() + s.slice(1));
+    const family = `Customize Codicon ${words.join(" ")}`.slice(0, 31).trim();
+    return { family, ps: (family.replace(/[^A-Za-z0-9]/g, "") + "-Regular").slice(0, 63), file: `customize-codicon-letters-${words.join("-").toLowerCase()}` };
+  }
+
+  function makeTtf() {
+    if (!fontReady) throw new Error("Wait for the letters to load.");
+    const icon = currentIcon();
+    const contours = iconContours(icon);
+    if (!contours.length) throw new Error("This icon has no shapes that can go in a font.");
+    const names = fontNames(icon);
+    const chars = Object.keys(GLYPHS).filter(ch => SHAPE[ch].w > 0).sort();
+    const ASC = ROWS * CELL + CELL / 4, DESC = -(ROWS + LINE_GAP) * CELL + ASC;
+
+    // Glyph order: .notdef, space, the icon (unencoded), then one glyph per character.
+    const iconGlyph = simpleGlyph(contours);
+    const notdef = simpleGlyph([
+      [{ x: 128, y: 0, on: true }, { x: 128, y: 1792, on: true }, { x: 1152, y: 1792, on: true }, { x: 1152, y: 0, on: true }],
+      [{ x: 256, y: 128, on: true }, { x: 1024, y: 128, on: true }, { x: 1024, y: 1664, on: true }, { x: 256, y: 1664, on: true }]
+    ]);
+    const glyphs = [
+      { ...notdef, adv: 1280 },
+      { data: [], bb: [0, 0, 0, 0], adv: Math.round(SPACING.wordSpace * CELL), empty: true },
+      { ...iconGlyph, adv: CELL }
+    ];
+    const gidOf = {};
+    let maxCells = 0;
+    for (const ch of chars) {
+      const offsets = [];
+      GLYPHS[ch].forEach((row, r) => [...row].forEach((v, c) => { if (v === "1") offsets.push([(c - SHAPE[ch].min) * CELL, (ROWS - 1 - r) * CELL]); }));
+      maxCells = Math.max(maxCells, offsets.length);
+      gidOf[ch] = glyphs.length;
+      glyphs.push({ ...compositeGlyph(2, iconGlyph.bb, offsets), adv: Math.round((SHAPE[ch].w + SPACING.base) * CELL) });
+    }
+
+    const glyf = bytesOut(), loca = bytesOut();
+    for (const g of glyphs) { loca.u32(glyf.a.length); glyf.bytes(g.data); }
+    loca.u32(glyf.a.length);
+    const drawn = glyphs.filter(g => !g.empty);
+    const xMin = Math.min(...drawn.map(g => g.bb[0])), yMin = Math.min(...drawn.map(g => g.bb[1]));
+    const xMax = Math.max(...drawn.map(g => g.bb[2])), yMax = Math.max(...drawn.map(g => g.bb[3]));
+    const hmtx = bytesOut();
+    for (const g of glyphs) hmtx.u16(g.adv).i16(g.empty ? 0 : g.bb[0]);
+
+    const now = Math.floor(Date.now() / 1000) + 2082844800;
+    const head = bytesOut().u32(0x00010000).u32(0x00010000).u32(0).u32(0x5F0F3CF5).u16(0x000B).u16(UPM)
+      .u32(Math.floor(now / 2 ** 32)).u32(now >>> 0).u32(Math.floor(now / 2 ** 32)).u32(now >>> 0)
+      .i16(xMin).i16(yMin).i16(xMax).i16(yMax).u16(0).u16(8).i16(2).i16(1).i16(0);
+    const advMax = Math.max(...glyphs.map(g => g.adv));
+    const hhea = bytesOut().u32(0x00010000).i16(ASC).i16(DESC).i16(0).u16(advMax)
+      .i16(Math.min(...drawn.map(g => g.bb[0]))).i16(Math.min(...drawn.map(g => g.adv - g.bb[2]))).i16(Math.max(...drawn.map(g => g.bb[2])))
+      .i16(1).i16(0).i16(0).i16(0).i16(0).i16(0).i16(0).i16(0).u16(glyphs.length);
+    const maxp = bytesOut().u32(0x00010000).u16(glyphs.length)
+      .u16(Math.max(iconGlyph.points, notdef.points)).u16(Math.max(iconGlyph.contours, notdef.contours))
+      .u16(Math.min(65535, iconGlyph.points * maxCells)).u16(Math.min(65535, iconGlyph.contours * maxCells))
+      .u16(2).u16(0).u16(0).u16(0).u16(0).u16(0).u16(0).u16(maxCells).u16(1);
+
+    const map = [[32, 1], [160, 1]];
+    for (const ch of chars) {
+      map.push([ch.charCodeAt(0), gidOf[ch]]);
+      const lower = ch.toLowerCase();
+      if (lower !== ch && !GLYPHS[lower]) map.push([lower.charCodeAt(0), gidOf[ch]]);
+    }
+    map.sort((a, b) => a[0] - b[0]);
+    const segs = [...map.map(([c, g]) => [c, c, (g - c + 65536) % 65536]), [0xFFFF, 0xFFFF, 1]];
+    const sr = 2 * 2 ** Math.floor(Math.log2(segs.length));
+    const sub = bytesOut().u16(4).u16(16 + segs.length * 8).u16(0).u16(segs.length * 2).u16(sr).u16(Math.log2(sr / 2)).u16(segs.length * 2 - sr);
+    for (const s of segs) sub.u16(s[1]);
+    sub.u16(0);
+    for (const s of segs) sub.u16(s[0]);
+    for (const s of segs) sub.u16(s[2]);
+    for (const s of segs) sub.u16(0);
+    const cmap = bytesOut().u16(0).u16(2).u16(0).u16(3).u32(20).u16(3).u16(1).u32(20).bytes(sub.a);
+
+    const avg = Math.round(drawn.concat(glyphs[1]).reduce((s, g) => s + g.adv, 0) / (drawn.length + 1));
+    const os2 = bytesOut().u16(4).i16(avg).u16(400).u16(5).u16(0)
+      .i16(1331).i16(1433).i16(0).i16(286).i16(1331).i16(1433).i16(0).i16(983).i16(CELL / 2).i16(3 * CELL + CELL / 2).i16(0)
+      .bytes([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).u32(1).u32(0).u32(0).u32(0).tag("NONE")
+      .u16(0x40 | 0x80).u16(map[0][0]).u16(map[map.length - 1][0])
+      .i16(ASC).i16(DESC).i16(0).u16(Math.max(ASC, yMax)).u16(Math.max(-DESC, -yMin)).u32(1).u32(0)
+      .i16(ROWS * CELL).i16(ROWS * CELL).u16(0).u16(32).u16(2);
+    const post = bytesOut().u32(0x00030000).u32(0).i16(-CELL / 2).i16(CELL / 2).u32(0).u32(0).u32(0).u32(0).u32(0);
+
+    const strings = [
+      [0, "Letters: Customize pixel font by Nina Shahriaree. Icons: Codicons by Microsoft (CC BY 4.0)."],
+      [1, names.family], [2, "Regular"], [3, `${names.ps};${new Date().toISOString().slice(0, 10)}`], [4, names.family],
+      [5, "Version 1.000"], [6, names.ps],
+      [13, "Letter design licensed under the SIL Open Font License 1.1. Codicons licensed under CC BY 4.0."],
+      [14, "https://openfontlicense.org"]
+    ];
+    const name = bytesOut().u16(0).u16(strings.length).u16(6 + strings.length * 12);
+    const store = bytesOut();
+    for (const [id, text] of strings) {
+      const start = store.a.length;
+      for (const ch of text) store.u16(ch.charCodeAt(0));
+      name.u16(3).u16(1).u16(0x409).u16(id).u16(store.a.length - start).u16(start);
+    }
+    name.bytes(store.a);
+
+    const pairs = [];
+    for (const a of chars) for (const b of chars) {
+      const v = Math.round((pairGap(a, b) - SPACING.base) * CELL);
+      if (v) pairs.push([gidOf[a], gidOf[b], v]);
+    }
+    pairs.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+    const ksr = 6 * 2 ** Math.floor(Math.log2(Math.max(1, pairs.length)));
+    const kern = bytesOut().u16(0).u16(1).u16(0).u16(14 + pairs.length * 6).u16(1)
+      .u16(pairs.length).u16(ksr).u16(Math.log2(ksr / 6)).u16(pairs.length * 6 - ksr);
+    for (const [a, b, v] of pairs) kern.u16(a).u16(b).i16(v);
+
+    const tables = { "OS/2": os2, cmap, glyf, head, hhea, hmtx, kern, loca, maxp, name, post };
+    const tags = Object.keys(tables).sort();
+    const n = tags.length, esr = 16 * 2 ** Math.floor(Math.log2(n));
+    const out = bytesOut().u32(0x00010000).u16(n).u16(esr).u16(Math.log2(esr / 16)).u16(n * 16 - esr);
+    let offset = 12 + n * 16;
+    const records = [];
+    for (const t of tags) {
+      const data = tables[t].a;
+      records.push({ tag: t, offset, data });
+      out.tag(t).u32(tableSum(data)).u32(offset).u32(data.length);
+      offset += Math.ceil(data.length / 4) * 4;
+    }
+    for (const r of records) out.bytes(r.data).pad();
+    const headOffset = records.find(r => r.tag === "head").offset;
+    const adjust = (0xB1B0AFBA - tableSum(out.a)) >>> 0;
+    const bytes = new Uint8Array(out.a);
+    new DataView(bytes.buffer).setUint32(headOffset + 8, adjust);
+    return { bytes, names };
+  }
+
+  async function saveFont() {
+    if (savingFont) return;
+    savingFont = true;
+    schedule();
+    try {
+      const font = makeTtf();
+      await saveFile(`${font.names.file}.ttf`, new Blob([font.bytes], { type: "font/ttf" }), "ttf");
+    } catch (err) {
+      console.error(err);
+      toast(err.message || "Couldn’t make the font");
+    } finally {
+      savingFont = false;
+      schedule();
+    }
+  }
+  el.saveTtf.addEventListener("click", saveFont);
 
   // ---------- Animated export ----------
   // One seamless loop: every loop icon in order, with enough passes to show all four wipe directions.
@@ -1200,6 +1567,16 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
           ? "This view can’t save files directly. Right-click the animation (or long-press on a phone) and choose Save Image As."
           : "This view can’t save files directly. Right-click the image (or long-press on a phone) and choose Save Image As. The background stays transparent.";
     el.sheetShot.innerHTML = "";
+    if (kind === "ttf") {
+      el.sheetHint.textContent = "This view can’t save files directly. Right-click the link below and choose Save Link As.";
+      const a = document.createElement("a");
+      a.href = sheetUrl; a.download = filename; a.textContent = filename;
+      el.sheetShot.appendChild(a);
+      el.sheetCode.hidden = el.sheetCopy.hidden = true;
+      el.sheet.hidden = false;
+      el.sheetClose.focus();
+      return;
+    }
     const media = kind === "mp4" || kind === "webm" ? document.createElement("video") : new Image();
     media.src = sheetUrl;
     if (media instanceof HTMLVideoElement) {
