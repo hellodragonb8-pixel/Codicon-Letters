@@ -8,7 +8,7 @@ One type family with inputs and outputs: Express what you want to say with lette
 
 ## Features
 
-- Uppercase A–Z plus ! and -; lowercase letters are automatically capitalized as you type
+- Uppercase letters A–Z plus 
 - Any custom color
 - Five export sizes, from Extra small to Extra large
 - Optional wipe animation that cycles through up to 5 icons, saved as a GIF or MP4
