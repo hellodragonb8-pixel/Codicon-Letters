@@ -852,7 +852,7 @@ input[type="color"]{width:32px;height:28px;border:1px solid var(--line);border-r
     el.skip.hidden = !L.skipped.length;
     if (L.skipped.length) {
       const list = L.skipped.slice(0, 12).map(c => c === " " ? "space" : c).join(" ");
-      el.skip.textContent = `Not in this font: ${list}${L.skipped.length > 12 ? " …" : ""}. You can use A–Z, ! and -.`;
+      el.skip.textContent = `Not in this font: ${list}${L.skipped.length > 12 ? " …" : ""}. You can use A–Z and ! - & ( ) $ + = @ ^ * # % ? . [ ] { }.`;
     }
 
     const ic = currentIcon();
