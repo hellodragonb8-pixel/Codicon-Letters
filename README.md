@@ -1,4 +1,4 @@
-<img width="1425" height="512" alt="codicon-hello-code-gear" src="https://github.com/user-attachments/assets/6844ae32-b319-4f37-9777-dffc3d39289e" />
+<img width="1425" height="512" alt="codicon-hello-code-gear" src="images/hello-code-white.png" />
 
 
 
